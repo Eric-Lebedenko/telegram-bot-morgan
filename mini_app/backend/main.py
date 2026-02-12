@@ -6,6 +6,7 @@ import json
 from urllib.parse import parse_qs
 
 from fastapi import FastAPI, HTTPException, Header, Depends, Request
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from config import load_config
@@ -35,6 +36,14 @@ payments = PaymentService()
 forex = ForexService()
 news = NewsService()
 users = UserService()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*'],
+)
 
 
 class AuthUser(BaseModel):
