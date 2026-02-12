@@ -79,6 +79,27 @@ CREATE TABLE IF NOT EXISTS alerts (
     FOREIGN KEY(user_id) REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS favorites (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    asset_type TEXT NOT NULL,
+    symbol TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(user_id, asset_type, symbol),
+    FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS price_watch (
+    user_id INTEGER NOT NULL,
+    asset_type TEXT NOT NULL,
+    symbol TEXT NOT NULL,
+    last_price REAL,
+    last_notified_at TEXT,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY(user_id, asset_type, symbol),
+    FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
 CREATE TABLE IF NOT EXISTS payments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,

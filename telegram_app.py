@@ -28,6 +28,8 @@ from services.payment_service import PaymentService
 from services.translation_service import TranslationService
 from services.link_service import LinkService
 from services.exchange_service import ExchangeService
+from services.favorites_service import FavoritesService
+from services.watch_service import WatchService
 
 log_dir = Path('logs')
 log_dir.mkdir(exist_ok=True)
@@ -45,6 +47,7 @@ logging.getLogger('httpx').setLevel(logging.WARNING)
 logger = logging.getLogger('telegram_app')
 
 rate_limiter = RateLimiter()
+watch_service = WatchService()
 
 
 def _infer_style(btn: ButtonSpec) -> str | None:
@@ -148,6 +151,7 @@ def _build_router() -> Router:
         education=EducationService(),
         portfolio=PortfolioService(),
         alerts=AlertService(),
+        favorites=FavoritesService(),
         users=UserService(),
         payments=PaymentService(),
         links=LinkService(),
@@ -303,6 +307,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             action, payload = action_payload, None
         if action == 'portfolio_add_type':
             context.user_data['portfolio_add_type'] = payload
+        if action == 'favorites_add_type':
+            context.user_data['favorites_add_type'] = payload
         message = await router.handle_action(action, user, payload)
         context.user_data['awaiting'] = message.expect_input
         context.user_data['awaiting_action'] = action if message.expect_input else None
@@ -378,6 +384,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             response = await router.handle_action('portfolio_list', user)
         except Exception:
             response = UIMessage(text=t('msg.asset_invalid', user.language))
+        context.user_data['awaiting'] = None
+        response = _ensure_buttons(user, response, back_menu)
+        await _edit_menu_message(update, context, response)
+        return
+
+    if awaiting == 'favorites_add_symbol':
+        asset_type = (context.user_data.get('favorites_add_type') or 'stock').lower()
+        try:
+            symbol = text.split()[0].upper()
+            added = await router.favorites.add_favorite(user, asset_type, symbol)
+            msg = 'msg.favorite_added' if added else 'msg.favorite_exists'
+            response = UIMessage(text=t(msg, user.language, symbol=symbol))
+        except Exception:
+            response = UIMessage(text=t('msg.favorites_invalid', user.language))
         context.user_data['awaiting'] = None
         response = _ensure_buttons(user, response, back_menu)
         await _edit_menu_message(update, context, response)
@@ -603,6 +623,7 @@ def run_telegram() -> None:
     loop.run_until_complete(init_db())
     app = Application.builder().token(cfg.telegram_bot_token).build()
     app.bot_data['router'] = _build_router()
+    app.bot_data['watch_service'] = watch_service
 
     app.add_handler(CommandHandler('start', start))
     app.add_handler(CommandHandler('menu', menu))
@@ -615,12 +636,117 @@ def run_telegram() -> None:
     app.add_handler(CallbackQueryHandler(handle_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_error_handler(error_handler)
+    if app.job_queue:
+        app.job_queue.run_repeating(price_watch_job, interval=300, first=20)
 
     app.run_polling(drop_pending_updates=True, close_loop=False)
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.exception("Unhandled error", exc_info=context.error)
+
+
+async def price_watch_job(context: ContextTypes.DEFAULT_TYPE) -> None:
+    router: Router = context.application.bot_data['router']
+    watch: WatchService = context.application.bot_data['watch_service']
+    cfg = load_config()
+    threshold = cfg.price_alert_pct
+    try:
+        items = await watch.list_watch_items('telegram')
+        if not items:
+            return
+        states = await watch.load_states()
+
+        stock_symbols = sorted({i['symbol'] for i in items if _is_stock_type(i['asset_type'])})
+        crypto_symbols = sorted({i['symbol'] for i in items if _is_crypto_type(i['asset_type'])})
+        forex_pairs = sorted({i['symbol'] for i in items if _is_forex_type(i['asset_type'])})
+
+        stock_prices: dict[str, float | None] = {}
+        crypto_prices: dict[str, float | None] = {}
+        forex_prices: dict[str, float | None] = {}
+
+        if stock_symbols:
+            quotes = await router.stocks.get_quotes_details(stock_symbols)
+            for q in quotes:
+                symbol = str(q.get('symbol') or '').upper()
+                stock_prices[symbol] = q.get('price')
+
+        if crypto_symbols:
+            quotes = await router.crypto.get_quotes(crypto_symbols)
+            for sym, q in quotes.items():
+                crypto_prices[str(sym).upper()] = q.get('price')
+
+        if forex_pairs:
+            fx = await router.forex.get_pairs_changes(forex_pairs)
+            for item in fx:
+                pair = str(item.get('pair') or '').upper()
+                forex_prices[pair] = item.get('rate')
+
+        for item in items:
+            user_id = int(item['user_id'])
+            chat_id = int(item['platform_user_id'])
+            lang = str(item.get('language') or 'ru')
+            asset_type = str(item['asset_type']).lower()
+            symbol = str(item['symbol']).upper()
+
+            price = None
+            if _is_stock_type(asset_type):
+                price = stock_prices.get(symbol)
+            elif _is_crypto_type(asset_type):
+                price = crypto_prices.get(symbol)
+            elif _is_forex_type(asset_type):
+                price = forex_prices.get(symbol)
+
+            if price is None:
+                continue
+
+            last_price = states.get((user_id, asset_type, symbol))
+            pct = None
+            if last_price and last_price != 0:
+                pct = (price - last_price) / last_price * 100.0
+
+            notified = False
+            if pct is not None and abs(pct) >= threshold:
+                emoji = '📈' if pct >= 0 else '📉'
+                pct_str = f"{pct:+.2f}%"
+                if _is_forex_type(asset_type):
+                    price_str = f"{float(price):.5f}"
+                else:
+                    price_str = _fmt_price_value(price)
+                link = router._link_for_asset(asset_type, symbol)
+                text = f"{emoji} {symbol}: {price_str} ({pct_str})\n{link}"
+                try:
+                    await context.bot.send_message(chat_id=chat_id, text=text)
+                    notified = True
+                except Exception:
+                    notified = False
+
+            await watch.upsert_state(user_id, asset_type, symbol, float(price), notified)
+    except Exception:
+        logger.exception("Price watch job failed")
+
+
+def _fmt_price_value(value: object) -> str:
+    try:
+        if isinstance(value, (int, float)):
+            if value >= 1:
+                return f"${value:,.2f}"
+            return f"${value:,.6f}"
+    except Exception:
+        pass
+    return 'N/A'
+
+
+def _is_stock_type(value: str) -> bool:
+    return value in {'stock', 'stocks', 'equity', 'etf', 'fund', 'funds'}
+
+
+def _is_crypto_type(value: str) -> bool:
+    return value in {'crypto', 'coin', 'token', 'ton', 'jetton'}
+
+
+def _is_forex_type(value: str) -> bool:
+    return value in {'forex', 'fx'}
 
 
 if __name__ == '__main__':

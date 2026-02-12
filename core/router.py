@@ -22,6 +22,7 @@ from services.user_service import UserService
 from services.payment_service import PaymentService
 from services.link_service import LinkService
 from services.exchange_service import ExchangeService
+from services.favorites_service import FavoritesService
 
 
 @dataclass
@@ -35,6 +36,7 @@ class Router:
     education: EducationService
     portfolio: PortfolioService
     alerts: AlertService
+    favorites: FavoritesService
     users: UserService
     payments: PaymentService
     links: LinkService
@@ -147,6 +149,14 @@ class Router:
                 text=format_section(self._t(user, 'menu.portfolio.title'), self._t(user, 'menu.portfolio.body')),
                 buttons=self._portfolio_buttons(user),
             ),
+            'favorites': UIMessage(
+                text=format_section(self._t(user, 'menu.favorites.title'), self._t(user, 'menu.favorites.body')),
+                buttons=[
+                    [self._btn(user, 'btn.add_favorite', 'action:favorites_add'), self._btn(user, 'btn.remove_favorite', 'action:favorites_remove')],
+                    [self._btn(user, 'btn.list_favorites', 'action:favorites_list')],
+                    [self._btn(user, 'btn.back', 'menu:portfolio')],
+                ],
+            ),
             'portfolio_sync': UIMessage(
                 text=format_section(self._t(user, 'menu.sync.title'), self._t(user, 'menu.sync.body')),
                 buttons=[
@@ -193,6 +203,7 @@ class Router:
             [self._btn(user, 'btn.holdings', 'action:portfolio_list')],
             [self._btn(user, 'btn.pnl', 'action:portfolio_pnl'), self._btn(user, 'btn.allocation', 'action:portfolio_allocation')],
             [self._btn(user, 'btn.sync', 'menu:portfolio_sync')],
+            [self._btn(user, 'btn.favorites', 'menu:favorites')],
             [self._btn(user, 'btn.alerts_menu', 'menu:alerts')],
             [self._btn(user, 'btn.back', 'menu:main')],
         ]
@@ -324,7 +335,14 @@ class Router:
             'portfolio_link_remove': lambda: self._portfolio_link_remove(user, payload),
             'portfolio_import_csv': lambda: self._portfolio_import_csv(user),
             'portfolio_export_csv': lambda: self._portfolio_export_csv(user),
+            'favorites_add': lambda: self._favorites_add(user),
+            'favorites_add_type': lambda: self._favorites_add_type(user, payload),
+            'favorites_add_symbol': lambda: self._favorites_add_symbol(user, payload),
+            'favorites_list': lambda: self._favorites_list(user),
+            'favorites_remove': lambda: self._favorites_remove_menu(user, payload),
+            'favorites_remove_symbol': lambda: self._favorites_remove_symbol(user, payload),
             'education_lessons': lambda: self._education_lessons(user, payload),
+            'education_lesson': lambda: self._education_lesson(user, payload),
             'education_glossary': lambda: self._education_glossary(user),
             'education_quiz': lambda: self._education_quiz(user),
             'news_headlines': lambda: self._news_headlines(user, payload),
@@ -1326,6 +1344,88 @@ class Router:
         buttons.append([self._btn(user, 'btn.back', 'menu:portfolio_sync')])
         return UIMessage(text="\n".join(lines), buttons=buttons)
 
+    async def _favorites_add(self, user: UserContext) -> UIMessage:
+        return UIMessage(
+            text=self._t(user, 'msg.favorites_choose_type'),
+            buttons=[
+                [self._btn(user, 'btn.add_stock', 'action:favorites_add_type:stock'), self._btn(user, 'btn.add_crypto', 'action:favorites_add_type:crypto')],
+                [self._btn(user, 'btn.add_fund', 'action:favorites_add_type:fund'), self._btn(user, 'btn.add_forex', 'action:favorites_add_type:forex')],
+                [self._btn(user, 'btn.back', 'menu:favorites')],
+            ],
+        )
+
+    async def _favorites_add_type(self, user: UserContext, payload: str | None) -> UIMessage:
+        asset_type = (payload or 'stock').lower()
+        return UIMessage(
+            text=self._t(user, 'msg.favorites_add_symbol', asset_type=asset_type),
+            expect_input='favorites_add_symbol',
+            input_hint='AAPL / SPY / BTC / EUR/USD',
+        )
+
+    async def _favorites_add_symbol(self, user: UserContext, payload: str | None) -> UIMessage:
+        raw = (payload or '').strip()
+        if ':' in raw:
+            asset_type, symbol = raw.split(':', 1)
+        else:
+            asset_type, symbol = 'stock', raw
+        asset_type = asset_type.lower()
+        symbol = symbol.upper()
+        if not symbol:
+            return UIMessage(text=self._t(user, 'msg.favorites_invalid'))
+        added = await self.favorites.add_favorite(user, asset_type, symbol)
+        msg = 'msg.favorite_added' if added else 'msg.favorite_exists'
+        return UIMessage(text=self._t(user, msg, symbol=symbol))
+
+    async def _favorites_list(self, user: UserContext) -> UIMessage:
+        items = await self.favorites.list_favorites(user)
+        if not items:
+            return UIMessage(text=self._t(user, 'msg.favorites_empty'))
+        lines = [
+            f"{i['symbol']} | {self._t(user, 'label.asset_type')}: {i['asset_type']} | "
+            f"{self._link_for_asset(i['asset_type'], i['symbol'])}"
+            for i in items[:30]
+        ]
+        return UIMessage(text=format_section(self._t(user, 'btn.list_favorites'), "\n".join(lines)))
+
+    async def _favorites_remove_menu(self, user: UserContext, payload: str | None) -> UIMessage:
+        items = await self.favorites.list_favorites(user)
+        if not items:
+            return UIMessage(text=self._t(user, 'msg.favorites_empty'))
+        order = [f"{i['asset_type']}:{i['symbol']}" for i in items]
+        page = int(payload or '1')
+        page_items, page, total = paginate(order, page, per_page=8)
+        buttons: list[list[ButtonSpec]] = []
+        row: list[ButtonSpec] = []
+        for item in page_items:
+            asset_type, symbol = item.split(':', 1)
+            label = f"❌ {symbol} ({asset_type})"
+            row.append(ButtonSpec(label, f"action:favorites_remove_symbol:{asset_type}:{symbol}"))
+            if len(row) == 2:
+                buttons.append(row)
+                row = []
+        if row:
+            buttons.append(row)
+        nav_row: list[ButtonSpec] = []
+        if page > 1:
+            nav_row.append(self._btn(user, 'btn.prev', f'action:favorites_remove:{page-1}'))
+        if page < total:
+            nav_row.append(self._btn(user, 'btn.next', f'action:favorites_remove:{page+1}'))
+        if nav_row:
+            buttons.append(nav_row)
+        buttons.append([self._btn(user, 'btn.back', 'menu:favorites')])
+        text = format_section(self._t(user, 'btn.remove_favorite'), self._t(user, 'msg.favorites_choose_remove', count=str(len(order))))
+        return UIMessage(text=text, buttons=buttons)
+
+    async def _favorites_remove_symbol(self, user: UserContext, payload: str | None) -> UIMessage:
+        if not payload or ':' not in payload:
+            return await self._favorites_remove_menu(user, '1')
+        asset_type, symbol = payload.split(':', 1)
+        removed = await self.favorites.remove_favorite(user, asset_type, symbol)
+        menu = await self._favorites_remove_menu(user, '1')
+        prefix = self._t(user, 'msg.favorite_removed', count=str(removed))
+        menu.text = f"{prefix}\n\n{menu.text}"
+        return menu
+
     async def _portfolio_link_remove(self, user: UserContext, payload: str | None) -> UIMessage:
         try:
             link_id = int(payload or '0')
@@ -1457,19 +1557,70 @@ class Router:
     async def _education_lessons(self, user: UserContext, payload: str | None = None) -> UIMessage:
         page = int(payload or '1')
         lessons = await self.education.get_lessons(user.language)
-        page_items, page, total = paginate(lessons, page)
-        text = format_section(self._t(user, 'btn.mini_lessons'), "\n".join(page_items))
-        buttons = []
+        page_items, page, total = paginate(lessons, page, per_page=5)
+        lines = []
+        buttons: list[list[ButtonSpec]] = []
+        row: list[ButtonSpec] = []
+        for idx, lesson in enumerate(page_items, start=1 + (page - 1) * 5):
+            title = str(lesson.get('title') or f"Lesson {idx}")
+            lesson_id = str(lesson.get('id') or idx)
+            lines.append(f"{idx}. {title}")
+            row.append(ButtonSpec(title, f"action:education_lesson:{lesson_id}:1"))
+            if len(row) == 2:
+                buttons.append(row)
+                row = []
+        if row:
+            buttons.append(row)
+        nav: list[ButtonSpec] = []
         if page > 1:
-            buttons.append([self._btn(user, 'btn.prev', f'page:education_lessons:{page-1}')])
+            nav.append(self._btn(user, 'btn.prev', f'page:education_lessons:{page-1}'))
         if page < total:
-            buttons.append([self._btn(user, 'btn.next', f'page:education_lessons:{page+1}')])
+            nav.append(self._btn(user, 'btn.next', f'page:education_lessons:{page+1}'))
+        if nav:
+            buttons.append(nav)
         buttons.append([self._btn(user, 'btn.back', 'menu:education')])
+        text = format_section(self._t(user, 'btn.mini_lessons'), "\n".join(lines))
         return UIMessage(text=text, buttons=buttons)
 
     async def _education_glossary(self, user: UserContext) -> UIMessage:
         items = await self.education.get_glossary(user.language)
         return UIMessage(text=format_section(self._t(user, 'btn.glossary'), "\n".join(items)))
+
+    async def _education_lesson(self, user: UserContext, payload: str | None) -> UIMessage:
+        lesson_id = ''
+        page = 1
+        if payload:
+            parts = str(payload).split(':')
+            lesson_id = parts[0]
+            if len(parts) > 1:
+                try:
+                    page = int(parts[1])
+                except Exception:
+                    page = 1
+        lesson = await self.education.get_lesson(user.language, lesson_id)
+        if not lesson:
+            return UIMessage(text=self._t(user, 'msg.lesson_not_found'), buttons=[[self._btn(user, 'btn.back', 'menu:education')]])
+        pages = list(lesson.get('pages') or [])
+        total = max(1, len(pages))
+        page = max(1, min(page, total))
+        title = str(lesson.get('title') or 'Lesson')
+        body = pages[page - 1] if pages else ''
+        sources = list(lesson.get('sources') or [])
+        lines = [f"*{title}*", body]
+        if sources:
+            lines.append("")
+            lines.append(f"*{self._t(user, 'label.sources')}*")
+            lines.extend([f"• {s}" for s in sources])
+        buttons: list[list[ButtonSpec]] = []
+        nav: list[ButtonSpec] = []
+        if page > 1:
+            nav.append(self._btn(user, 'btn.prev', f'action:education_lesson:{lesson_id}:{page-1}'))
+        if page < total:
+            nav.append(self._btn(user, 'btn.next', f'action:education_lesson:{lesson_id}:{page+1}'))
+        if nav:
+            buttons.append(nav)
+        buttons.append([self._btn(user, 'btn.back', 'menu:education')])
+        return UIMessage(text="\n".join(lines), buttons=buttons)
 
     async def _education_quiz(self, user: UserContext) -> UIMessage:
         if not has_access(user, 'education_quiz'):
@@ -1690,10 +1841,17 @@ ACTION_BACK_MENU = {
     'portfolio_link_remove': 'portfolio_sync',
     'portfolio_import_csv': 'portfolio_sync',
     'portfolio_export_csv': 'portfolio_sync',
+    'favorites_add': 'favorites',
+    'favorites_add_type': 'favorites',
+    'favorites_add_symbol': 'favorites',
+    'favorites_list': 'favorites',
+    'favorites_remove': 'favorites',
+    'favorites_remove_symbol': 'favorites',
     'alerts_price_add': 'alerts',
     'alerts_percent_add': 'alerts',
     'alerts_list': 'alerts',
     'education_lessons': 'education',
+    'education_lesson': 'education',
     'education_glossary': 'education',
     'education_quiz': 'education',
     'news_headlines': 'news',
