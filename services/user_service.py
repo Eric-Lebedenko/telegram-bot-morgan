@@ -37,6 +37,7 @@ class UserService:
             return UserContext(
                 platform=platform,
                 user_id=str(row['id']),
+                platform_user_id=str(platform_user_id),
                 username=row['username'],
                 tier=tier,
                 language=language,

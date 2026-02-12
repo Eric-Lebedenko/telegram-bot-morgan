@@ -37,6 +37,7 @@ class Config:
 
     admin_user_ids: set[int]
     discord_server_url: str
+    telegram_bot_username: str
 
 
 def _get_env(name: str, default: str = '') -> str:
@@ -84,4 +85,5 @@ def load_config() -> Config:
 
         admin_user_ids=admin_set,
         discord_server_url=_get_env('DISCORD_SERVER_URL'),
+        telegram_bot_username=_get_env('TELEGRAM_BOT_USERNAME'),
     )

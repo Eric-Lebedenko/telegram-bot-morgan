@@ -112,6 +112,27 @@ CREATE TABLE IF NOT EXISTS payments (
     FOREIGN KEY(user_id) REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS user_profiles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    display_name TEXT,
+    headline TEXT,
+    bio TEXT,
+    location TEXT,
+    website TEXT,
+    email TEXT,
+    phone TEXT,
+    telegram TEXT,
+    instagram TEXT,
+    twitter TEXT,
+    linkedin TEXT,
+    company TEXT,
+    role TEXT,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(user_id),
+    FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
 CREATE TABLE IF NOT EXISTS feature_toggles (
     key TEXT PRIMARY KEY,
     enabled INTEGER NOT NULL DEFAULT 1

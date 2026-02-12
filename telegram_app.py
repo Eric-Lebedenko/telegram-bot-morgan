@@ -30,6 +30,7 @@ from services.link_service import LinkService
 from services.exchange_service import ExchangeService
 from services.favorites_service import FavoritesService
 from services.watch_service import WatchService
+from services.profile_service import ProfileService
 
 log_dir = Path('logs')
 log_dir.mkdir(exist_ok=True)
@@ -152,6 +153,7 @@ def _build_router() -> Router:
         portfolio=PortfolioService(),
         alerts=AlertService(),
         favorites=FavoritesService(),
+        profiles=ProfileService(),
         users=UserService(),
         payments=PaymentService(),
         links=LinkService(),
@@ -186,6 +188,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not await rate_limiter.allow(f"tg:{update.effective_user.id}"):
         return
     user = await _ensure_user_context(update, context)
+    if context.args:
+        arg = context.args[0]
+        if arg.startswith('card_'):
+            platform_user_id = arg.replace('card_', '').strip()
+            if platform_user_id:
+                message = await router.build_public_profile_card(user, platform_user_id)
+                await _send_ui(update, context, message)
+                return
     mention = context.user_data.get('mention') or (user.username or 'Investor')
     message = router.main_menu(user, mention)
     await _send_ui(update, context, message)
@@ -400,6 +410,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             response = UIMessage(text=t('msg.favorites_invalid', user.language))
         context.user_data['awaiting'] = None
         response = _ensure_buttons(user, response, back_menu)
+        await _edit_menu_message(update, context, response)
+        return
+
+    if awaiting.startswith('profile_edit_field:'):
+        field = awaiting.split(':', 1)[1]
+        value = text.strip()
+        if value == '-':
+            value = ''
+        await router.profiles.set_field(user, field, value)
+        response = await router._profile_card(user)
+        context.user_data['awaiting'] = None
+        response = _ensure_buttons(user, response, 'profile')
         await _edit_menu_message(update, context, response)
         return
 

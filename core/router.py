@@ -23,6 +23,7 @@ from services.payment_service import PaymentService
 from services.link_service import LinkService
 from services.exchange_service import ExchangeService
 from services.favorites_service import FavoritesService
+from services.profile_service import ProfileService
 
 
 @dataclass
@@ -37,6 +38,7 @@ class Router:
     portfolio: PortfolioService
     alerts: AlertService
     favorites: FavoritesService
+    profiles: ProfileService
     users: UserService
     payments: PaymentService
     links: LinkService
@@ -194,6 +196,7 @@ class Router:
             'admin': self._admin_menu(user),
             'language': self._language_menu(user),
             'profile': self._profile_menu(user),
+            'profile_edit': self._profile_edit_menu(user),
         }
         return menus.get(menu_id, self.main_menu(user))
 
@@ -267,7 +270,25 @@ class Router:
             self._t(user, 'menu.profile.title'),
             self._t(user, 'menu.profile.body', badge=badge, tier=self._t(user, f'tier.{user.tier}'), username=username),
         )
-        buttons = [[self._btn(user, 'btn.back', 'menu:main')]]
+        buttons = [
+            [self._btn(user, 'btn.profile_card', 'action:profile_card'), self._btn(user, 'btn.profile_edit', 'menu:profile_edit')],
+            [self._btn(user, 'btn.profile_share', 'action:profile_share')],
+            [self._btn(user, 'btn.back', 'menu:main')],
+        ]
+        return UIMessage(text=text, buttons=buttons)
+
+    def _profile_edit_menu(self, user: UserContext) -> UIMessage:
+        buttons = [
+            [self._btn(user, 'btn.edit_name', 'action:profile_edit_field:display_name'), self._btn(user, 'btn.edit_headline', 'action:profile_edit_field:headline')],
+            [self._btn(user, 'btn.edit_bio', 'action:profile_edit_field:bio'), self._btn(user, 'btn.edit_location', 'action:profile_edit_field:location')],
+            [self._btn(user, 'btn.edit_website', 'action:profile_edit_field:website'), self._btn(user, 'btn.edit_email', 'action:profile_edit_field:email')],
+            [self._btn(user, 'btn.edit_phone', 'action:profile_edit_field:phone'), self._btn(user, 'btn.edit_telegram', 'action:profile_edit_field:telegram')],
+            [self._btn(user, 'btn.edit_instagram', 'action:profile_edit_field:instagram'), self._btn(user, 'btn.edit_twitter', 'action:profile_edit_field:twitter')],
+            [self._btn(user, 'btn.edit_linkedin', 'action:profile_edit_field:linkedin'), self._btn(user, 'btn.edit_company', 'action:profile_edit_field:company')],
+            [self._btn(user, 'btn.edit_role', 'action:profile_edit_field:role')],
+            [self._btn(user, 'btn.back', 'menu:profile')],
+        ]
+        text = format_section(self._t(user, 'menu.profile_edit.title'), self._t(user, 'menu.profile_edit.body'))
         return UIMessage(text=text, buttons=buttons)
 
     async def handle_action(self, action: str, user: UserContext, payload: str | None = None) -> UIMessage:
@@ -357,6 +378,9 @@ class Router:
             'admin_stats': lambda: self._admin_stats(user),
             'admin_toggle': lambda: self._admin_toggle(user),
             'admin_verify': lambda: self._admin_verify(user),
+            'profile_card': lambda: self._profile_card(user),
+            'profile_share': lambda: self._profile_share(user),
+            'profile_edit_field': lambda: self._profile_edit_field(user, payload),
         }
         handler = action_map.get(action)
         if not handler:
@@ -935,6 +959,64 @@ class Router:
         if at in ('forex', 'fx'):
             return self._yahoo_forex_url(symbol)
         return self._yahoo_equity_url(symbol)
+
+    def _profile_share_link(self, user: UserContext) -> str:
+        from config import load_config
+        cfg = load_config()
+        if not cfg.telegram_bot_username:
+            return ''
+        return f"https://t.me/{cfg.telegram_bot_username}?start=card_{user.platform_user_id}"
+
+    def _build_profile_card(self, user: UserContext, profile: dict[str, object]) -> str:
+        name = str(profile.get('display_name') or profile.get('username') or user.username or 'Investor')
+        headline = str(profile.get('headline') or '')
+        bio = str(profile.get('bio') or '')
+        location = str(profile.get('location') or '')
+        website = str(profile.get('website') or '')
+        email = str(profile.get('email') or '')
+        phone = str(profile.get('phone') or '')
+        telegram = str(profile.get('telegram') or '')
+        instagram = str(profile.get('instagram') or '')
+        twitter = str(profile.get('twitter') or '')
+        linkedin = str(profile.get('linkedin') or '')
+        company = str(profile.get('company') or '')
+        role = str(profile.get('role') or '')
+
+        lines = [f"*{name}*"]
+        if headline:
+            lines.append(headline)
+        if bio:
+            lines.append("")
+            lines.append(bio)
+        details = []
+        if company or role:
+            details.append(f"{company} {role}".strip())
+        if location:
+            details.append(location)
+        if details:
+            lines.append("")
+            lines.extend(details)
+
+        contacts = []
+        if website:
+            contacts.append(f"🌐 {website}")
+        if email:
+            contacts.append(f"✉️ {email}")
+        if phone:
+            contacts.append(f"📞 {phone}")
+        if telegram:
+            contacts.append(f"💬 {telegram}")
+        if instagram:
+            contacts.append(f"📸 {instagram}")
+        if twitter:
+            contacts.append(f"🐦 {twitter}")
+        if linkedin:
+            contacts.append(f"💼 {linkedin}")
+        if contacts:
+            lines.append("")
+            lines.append(f"*{self._t(user, 'label.contacts')}*")
+            lines.extend(contacts)
+        return "\n".join(lines)
 
     async def _etfs(self, user: UserContext) -> UIMessage:
         items = await self.stocks.get_top_etfs()
@@ -1778,6 +1860,41 @@ class Router:
         if not is_admin_allowed(user):
             return UIMessage(text=self._t(user, 'msg.admin_required'))
         return UIMessage(text=self._t(user, 'msg.verify_hint'), expect_input='admin_verify', input_hint='123456789 major')
+
+    async def _profile_card(self, user: UserContext) -> UIMessage:
+        profile = await self.profiles.get_profile(user)
+        text = self._build_profile_card(user, profile)
+        return UIMessage(text=text, buttons=[[self._btn(user, 'btn.back', 'menu:profile')]])
+
+    async def _profile_share(self, user: UserContext) -> UIMessage:
+        link = self._profile_share_link(user)
+        if not link:
+            text = self._t(user, 'msg.profile_share_missing')
+        else:
+            text = self._t(user, 'msg.profile_share', link=link)
+        buttons = []
+        if link:
+            share_url = f"https://t.me/share/url?url={link}"
+            buttons.append([ButtonSpec(self._t(user, 'btn.share_link'), f"url:{share_url}")])
+        buttons.append([self._btn(user, 'btn.back', 'menu:profile')])
+        return UIMessage(text=text, buttons=buttons)
+
+    async def _profile_edit_field(self, user: UserContext, payload: str | None) -> UIMessage:
+        field = (payload or '').strip()
+        if not field:
+            return UIMessage(text=self._t(user, 'msg.profile_field_invalid'))
+        return UIMessage(
+            text=self._t(user, 'msg.profile_edit_hint', field=field),
+            expect_input=f'profile_edit_field:{field}',
+            input_hint=self._t(user, 'msg.profile_edit_example'),
+        )
+
+    async def build_public_profile_card(self, viewer: UserContext, platform_user_id: str) -> UIMessage:
+        profile = await self.profiles.get_profile_by_platform('telegram', platform_user_id)
+        if not profile:
+            return UIMessage(text=self._t(viewer, 'msg.profile_not_found'))
+        text = self._build_profile_card(viewer, profile)
+        return UIMessage(text=text, buttons=[[self._btn(viewer, 'btn.back', 'menu:main')]])
 
 
 ACTION_BACK_MENU = {

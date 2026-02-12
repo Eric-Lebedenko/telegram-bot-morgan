@@ -27,6 +27,7 @@ from services.translation_service import TranslationService
 from services.link_service import LinkService
 from services.exchange_service import ExchangeService
 from services.favorites_service import FavoritesService
+from services.profile_service import ProfileService
 
 rate_limiter = RateLimiter()
 
@@ -43,6 +44,7 @@ def _build_router() -> Router:
         portfolio=PortfolioService(),
         alerts=AlertService(),
         favorites=FavoritesService(),
+        profiles=ProfileService(),
         users=UserService(),
         payments=PaymentService(),
         links=LinkService(),
