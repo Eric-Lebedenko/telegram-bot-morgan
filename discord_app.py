@@ -341,6 +341,18 @@ class StockDividendsModal(discord.ui.Modal, title='Stock Dividends'):
         await interaction.response.send_message(message.text, ephemeral=True)
 
 
+class StockEarningsModal(discord.ui.Modal, title='Stock Earnings'):
+    symbol = discord.ui.TextInput(label='Ticker (AAPL, TSLA, SPY)', max_length=15)
+
+    def __init__(self, bot: InvestmentBot, user: UserContext) -> None:
+        super().__init__()
+        self.bot = bot
+        self.user = user
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        message = await self.bot.router.build_stock_earnings(self.user, self.symbol.value.upper())
+        await interaction.response.send_message(message.text, ephemeral=True)
+
 class ForexFindModal(discord.ui.Modal, title='Find Forex Pair'):
     pair = discord.ui.TextInput(label='Pair (EUR/USD)', max_length=12)
 
@@ -478,6 +490,7 @@ MODAL_ACTIONS = {
     'action:stocks_fundamentals_input': StockFundamentalsModal,
     'action:stocks_ratios_input': StockRatiosModal,
     'action:stocks_dividends_input': StockDividendsModal,
+    'action:stocks_earnings_input': StockEarningsModal,
     'action:forex_find_input': ForexFindModal,
     'action:portfolio_link_exchange': ExchangeLinkModal,
     'action:portfolio_link_wallet': WalletLinkModal,

@@ -248,6 +248,9 @@ class Router:
             'stocks_ratios_portfolio': lambda: self._stocks_ratios_portfolio(user, payload),
             'stocks_ratios_symbol': lambda: self._stocks_ratios_symbol(user, payload),
             'stocks_earnings': lambda: self._stocks_earnings(user),
+            'stocks_earnings_input': lambda: self._stocks_earnings_input(user),
+            'stocks_earnings_portfolio': lambda: self._stocks_earnings_portfolio(user, payload),
+            'stocks_earnings_symbol': lambda: self._stocks_earnings_symbol(user, payload),
             'stocks_dividends': lambda: self._stocks_dividends(user),
             'stocks_dividends_input': lambda: self._stocks_dividends_input(user),
             'stocks_dividends_portfolio': lambda: self._stocks_dividends_portfolio(user, payload),
@@ -403,9 +406,23 @@ class Router:
     async def _stocks_earnings(self, user: UserContext) -> UIMessage:
         if not has_access(user, 'stocks_earnings'):
             return UIMessage(text=missing_access_message('stocks_earnings', user.language))
-        items = await self.stocks.get_earnings('AAPL')
-        lines = [f"{i['date']} — EPS {i['eps']}" for i in items]
-        return UIMessage(text=format_section(self._t(user, 'btn.earnings'), "\n".join(lines)))
+        return self._stock_metric_menu(user, 'btn.earnings', 'stocks_earnings')
+
+    async def _stocks_earnings_input(self, user: UserContext) -> UIMessage:
+        if not has_access(user, 'stocks_earnings'):
+            return UIMessage(text=missing_access_message('stocks_earnings', user.language))
+        return UIMessage(
+            text=self._t(user, 'msg.stocks_find'),
+            expect_input='stocks_earnings_symbol',
+            input_hint='AAPL / TSLA / SPY',
+        )
+
+    async def _stocks_earnings_portfolio(self, user: UserContext, payload: str | None) -> UIMessage:
+        return await self._stock_metric_portfolio(user, payload, 'stocks_earnings', 'btn.earnings')
+
+    async def _stocks_earnings_symbol(self, user: UserContext, payload: str | None) -> UIMessage:
+        symbol = (payload or 'AAPL').upper()
+        return await self.build_stock_earnings(user, symbol)
 
     async def _stocks_dividends(self, user: UserContext) -> UIMessage:
         if not has_access(user, 'stocks_dividends'):
@@ -556,6 +573,18 @@ class Router:
         else:
             lines.append(self._t(user, 'msg.dividends_empty'))
         return UIMessage(text=format_section(self._t(user, 'btn.dividends'), "\n".join(lines)))
+
+    async def build_stock_earnings(self, user: UserContext, symbol: str) -> UIMessage:
+        if not has_access(user, 'stocks_earnings'):
+            return UIMessage(text=missing_access_message('stocks_earnings', user.language))
+        sym = symbol.upper()
+        items = await self.stocks.get_earnings(sym)
+        lines = [f"*{sym}*"]
+        if items:
+            lines.extend([f"{i['date']} — EPS {i['eps']}" for i in items])
+        else:
+            lines.append(self._t(user, 'msg.earnings_empty'))
+        return UIMessage(text=format_section(self._t(user, 'btn.earnings'), "\n".join(lines)))
 
     async def _etf_top(self, user: UserContext, payload: str | None) -> UIMessage:
         sort, page = _parse_sort_page(payload, default_sort='gainers')
@@ -1474,6 +1503,9 @@ ACTION_BACK_MENU = {
     'stocks_ratios_portfolio': 'stocks',
     'stocks_ratios_symbol': 'stocks',
     'stocks_earnings': 'stocks',
+    'stocks_earnings_input': 'stocks',
+    'stocks_earnings_portfolio': 'stocks',
+    'stocks_earnings_symbol': 'stocks',
     'stocks_dividends': 'stocks',
     'stocks_dividends_input': 'stocks',
     'stocks_dividends_portfolio': 'stocks',

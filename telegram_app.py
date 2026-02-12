@@ -506,6 +506,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await _edit_menu_message(update, context, response)
         return
 
+    if awaiting == 'stocks_earnings_symbol':
+        symbol = text.split()[0].upper()
+        response = await router.build_stock_earnings(user, symbol)
+        context.user_data['awaiting'] = None
+        response = _ensure_buttons(user, response, back_menu)
+        await _edit_menu_message(update, context, response)
+        return
+
     if awaiting == 'forex_find':
         pair = text.split()[0].upper()
         response = await router.build_forex_profile(user, pair)
