@@ -668,6 +668,49 @@ class Router:
         growth = _num(metrics.get('epsGrowth3Y') or metrics.get('epsGrowth5Y'))
         graham_value, graham_note = _calc_graham_value(eps, growth)
         margin = _calc_margin_of_safety(graham_value, _num(price_raw))
+        hist_pe = 16.6
+        shiller_premium = None
+        if pe_proxy is not None and hist_pe:
+            shiller_premium = (pe_proxy / hist_pe - 1) * 100.0
+
+        fcf_per_share = None
+        for key in ('freeCashFlowPerShareTTM', 'freeCashFlowPerShareMRQ', 'cashFlowPerShareTTM'):
+            fcf_val = _num(metrics.get(key))
+            if fcf_val is not None:
+                fcf_per_share = fcf_val
+                break
+        if fcf_per_share is None:
+            fcf_total = _num(metrics.get('freeCashFlowTTM') or metrics.get('freeCashFlowAnnual'))
+            shares = _num(metrics.get('shareOutstanding') or metrics.get('sharesOutstanding'))
+            if fcf_total is not None and shares:
+                fcf_per_share = fcf_total / shares
+        buffett_fair = fcf_per_share * 15.0 if fcf_per_share is not None else None
+        buffett_margin = _calc_margin_of_safety(buffett_fair, _num(price_raw)) if buffett_fair is not None else None
+
+        def _fmt_signed_pct(value: float | None) -> str:
+            if value is None:
+                return 'N/A'
+            sign = '+' if value >= 0 else ''
+            return f"{sign}{value:.1f}%"
+
+        def _label_discount(value: float | None) -> str:
+            if value is None:
+                return self._t(user, 'label.premium')
+            return self._t(user, 'label.discount') if value >= 0 else self._t(user, 'label.premium')
+
+        graham_line = (
+            f"• {self._t(user, 'label.graham')}: fair ≈ {self._fmt_num(graham_value, prefix='$')} "
+            f"({_label_discount(margin)} {_fmt_signed_pct(margin)})"
+        )
+        buffett_line = (
+            f"• {self._t(user, 'label.buffett_fcf')}: fair ≈ {self._fmt_num(buffett_fair, prefix='$')} "
+            f"({_label_discount(buffett_margin)} {_fmt_signed_pct(buffett_margin)})"
+        )
+        shiller_line = (
+            f"• {self._t(user, 'label.shiller_proxy')}: "
+            f"P/E={self._fmt_num(pe_proxy)}, {self._t(user, 'label.historical_pe')} {hist_pe:.1f} → "
+            f"{_label_discount(shiller_premium)} {_fmt_signed_pct(shiller_premium)}"
+        )
 
         lines = [
             f"*{sym}*",
@@ -676,10 +719,10 @@ class Router:
             f"{self._t(user, 'label.change')}: {change}",
             "",
             f"*{self._t(user, 'section.valuation')}*",
-            f"{self._t(user, 'label.cape_proxy')}: {self._fmt_num(pe_proxy)}",
-            f"{self._t(user, 'label.graham_value')}: {self._fmt_num(graham_value, prefix='$')}",
+            graham_line,
+            buffett_line,
+            shiller_line,
             f"{self._t(user, 'label.growth_used')}: {graham_note}",
-            f"{self._t(user, 'label.margin_safety')}: {self._fmt_num(margin, suffix='%')}",
         ]
 
         reddit = sentiment.get('reddit') or {}
