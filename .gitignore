@@ -1,0 +1,15 @@
+.env
+.env.*
+logs/
+__pycache__/
+*.pyc
+*.sqlite
+*.db
+data/
+.venv/
+node_modules/
+mini_app/frontend/node_modules/
+mini_app/frontend/dist/
+dist/
+build/
+.DS_Store

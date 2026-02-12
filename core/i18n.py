@@ -1,0 +1,658 @@
+from __future__ import annotations
+
+from typing import Any
+
+TRANSLATIONS: dict[str, dict[str, str]] = {
+    'en': {
+        'main.title': 'Unified Investment Hub',
+        'main.intro': (
+            'Welcome, {username}!\n'
+            'Tier: {tier}\n\n'
+            'Your personal investing cockpit:\n'
+            '- Live prices across markets\n'
+            '- Quick portfolio tracking & allocation\n'
+            '- Alerts for price and % moves\n'
+            '- Bite-sized lessons to level up\n\n'
+            'New here? Tap **Start Here** for a 60‑second tour.'
+        ),
+        'menu.markets.title': 'Markets',
+        'menu.markets.body': (
+            'Explore global markets in one place.\n'
+            'Inside: Stocks, ETFs, and Forex rates.'
+        ),
+        'menu.stocks.title': 'Stocks',
+        'menu.stocks.body': (
+            'Quick equity snapshots and key fundamentals.\n'
+            'Fundamentals = health & stability. Ratios = efficiency & valuation.'
+        ),
+        'menu.forex.title': 'Forex',
+        'menu.forex.body': (
+            'Real‑time currency exchange rates.\n'
+            'See top movers and search any major pair.'
+        ),
+        'menu.etfs.title': 'ETFs',
+        'menu.etfs.body': 'Top ETFs with sort by gainers, losers, and volume.',
+        'menu.crypto.title': 'Crypto',
+        'menu.crypto.body': (
+            'Live crypto prices, market dominance and on‑chain signals.\n'
+            'Best for quick market pulse and trend checks.'
+        ),
+        'menu.ton.title': 'TON',
+        'menu.ton.body': (
+            'Track TON price, wallets and NFT collections.\n'
+            'Great for TON ecosystem monitoring.'
+        ),
+        'menu.nft.title': 'NFT',
+        'menu.nft.body': (
+            'Floor prices, top collections, and search.\n'
+            'Quickly compare demand across collections.'
+        ),
+        'menu.portfolio.title': 'Portfolio',
+        'menu.portfolio.body': (
+            'Add positions, track allocation, and see PnL.\n'
+            'Set alerts right from your portfolio.'
+        ),
+        'menu.alerts.title': 'Alerts',
+        'menu.alerts.body': (
+            'Create price or % move alerts.\n'
+            'Stay informed without watching charts.'
+        ),
+        'menu.education.title': 'Education',
+        'menu.education.body': (
+            'Mini‑lessons, glossary, and quizzes.\n'
+            'Perfect for beginners and quick refreshers.'
+        ),
+        'menu.news.title': 'News',
+        'menu.news.body': (
+            'Market headlines and project‑specific news.\n'
+            'Stay updated on what moves prices.'
+        ),
+        'menu.settings.title': 'Settings',
+        'menu.settings.body': 'Tier: {tier}\nManage subscription and preferences.',
+        'menu.profile.title': 'Profile',
+        'menu.profile.body': 'Badge: {badge}\nTier: {tier}\nUsername: {username}',
+        'menu.admin.title': 'Admin Panel',
+        'menu.onboarding.title': 'Start Here',
+        'menu.onboarding.body': (
+            '1) Check live prices\n'
+            '2) Add a portfolio position\n'
+            '3) Set an alert\n\n'
+            'Suggested first actions:\n'
+            '- Crypto prices in one tap\n'
+            '- Add a stock you own\n'
+            '- Learn a 2‑minute lesson'
+        ),
+        'menu.language.title': 'Language',
+        'menu.language.body': 'Choose your language for all bot messages.',
+        'section.crypto_top': 'Crypto Top 10',
+        'section.stocks_top': 'Stocks Top 10',
+        'section.funds_top': 'Funds / ETFs',
+        'fund.spy': 'S&P 500 (US large-cap)',
+        'fund.qqq': 'Nasdaq-100 (US mega-cap tech)',
+        'fund.vti': 'Total US stock market',
+        'fund.iwm': 'US small-cap (Russell 2000)',
+        'fund.dia': 'Dow Jones 30 blue chips',
+        'fund.xlk': 'US technology sector',
+        'fund.xlf': 'US financial sector',
+        'fund.xlv': 'US healthcare sector',
+
+        'tier.free': 'Free',
+        'tier.pro': 'Pro',
+        'tier.elite': 'Elite',
+        'badge.none': 'None',
+        'badge.major': 'Major',
+        'badge.hodl': 'HODL',
+        'badge.verified': 'Verified',
+
+        'btn.start_here': '🧭 Start Here',
+        'btn.quick_prices': '⚡ Quick Prices',
+        'btn.markets': '📈 Markets',
+        'btn.crypto': '🪙 Crypto',
+        'btn.nft': '💎 NFT',
+        'btn.ton': '⚡️ TON',
+        'btn.portfolio': '📊 Portfolio',
+        'btn.education': '🎓 Education',
+        'btn.news': '📰 News',
+        'btn.settings': '⚙️ Settings',
+        'btn.profile': '👤 Profile',
+        'btn.admin': '🛠 Admin',
+        'btn.open_app': '🚀 Open App',
+        'btn.discord': '💬 Discord',
+        'btn.back': '⬅️ Back',
+        'btn.prev': '⬅️ Prev',
+        'btn.main_menu': '🏠 Main Menu',
+        'btn.next': 'Next ➡️',
+        'btn.stocks': '📈 Stocks',
+        'btn.etfs': '📊 ETFs',
+        'btn.forex': '💱 Forex',
+        'btn.price': '💵 Price',
+        'btn.fundamentals': '📘 Fundamentals',
+        'btn.ratios': '📊 Ratios',
+        'btn.earnings': '📅 Earnings',
+        'btn.dividends': '💸 Dividends',
+        'btn.top_stocks': '🏆 Top Stocks',
+        'btn.top_gainers': '📈 Top Gainers',
+        'btn.top_losers': '📉 Top Losers',
+        'btn.top_volume': '🔊 Top Volume',
+        'btn.top_pairs': '💱 Top Pairs',
+        'btn.list': '📋 List',
+        'btn.find_pair': '🔎 Find Pair',
+        'btn.rates': '💱 Rates',
+        'btn.prices': '🪙 Prices',
+        'btn.top_100': '🏆 Top 100',
+        'btn.find_asset': '🔎 Find Asset',
+        'btn.find_stock': '🔎 Find Stock',
+        'btn.valuation': '⚖️ Valuation',
+        'btn.from_portfolio': '📂 From Portfolio',
+        'btn.enter_ticker': '⌨️ Enter Ticker',
+        'btn.alerts': '🔔 Alerts',
+        'btn.dominance': '📊 Dominance',
+        'btn.onchain': '🧬 On-chain',
+        'btn.nfts': '📦 NFTs',
+        'btn.wallet_info': '👛 Wallet Info',
+        'btn.usernames': '👤 Usernames',
+        'btn.gifts': '🎁 NFT Gifts',
+        'btn.projects': '🚀 TON Projects',
+        'btn.floor_prices': '💎 Floor Prices',
+        'btn.collections': '🖼 Collections',
+        'btn.search': '🔍 Search',
+        'btn.add_asset': '➕ Add Asset',
+        'btn.remove_asset': '➖ Remove Asset',
+        'btn.holdings': '📋 Holdings',
+        'btn.sync': '🔄 Sync',
+        'btn.pnl': '📈 PnL',
+        'btn.allocation': '🥧 Allocation',
+        'btn.alerts_menu': '🔔 Alerts',
+        'btn.price_alert': '💵 Price Alert',
+        'btn.percent_alert': '📈 % Move Alert',
+        'btn.view_alerts': '📋 View Alerts',
+        'btn.mini_lessons': '📘 Mini-lessons',
+        'btn.glossary': '📚 Glossary',
+        'btn.quizzes': '📝 Quizzes',
+        'btn.headlines': '📰 Headlines',
+        'btn.project_news': '🔎 Project News',
+        'btn.translate': '🌐 Translate',
+        'btn.original': '📝 Original',
+        'btn.subscription': '💳 Subscription',
+        'btn.billing': '🧾 Billing',
+        'btn.upgrade_pro': '⬆️ Upgrade Pro',
+        'btn.upgrade_elite': '⬆️ Upgrade Elite',
+        'btn.broadcast': '📣 Broadcast',
+        'btn.user_stats': '👥 User Stats',
+        'btn.feature_toggle': '🎚 Feature Toggle',
+        'btn.verify': '✅ Verify User',
+        'btn.language': '🌐 Language',
+        'btn.lang_ru': '🇷🇺 Русский',
+        'btn.lang_en': '🇬🇧 English',
+        'btn.create_alert': '🔔 Create Alert',
+        'btn.sync_exchange': '🏦 Connect Exchange',
+        'btn.sync_wallet': '👛 Connect Wallet',
+        'btn.sync_run': '🚀 Run Sync',
+        'btn.sync_links': '🔗 Linked Accounts',
+        'btn.csv_import': '📥 Import CSV',
+        'btn.csv_export': '📤 Export CSV',
+
+        'msg.unknown_action': 'Unknown action. Use the menu buttons to navigate.',
+        'msg.admin_required': '🔒 Admin access required.',
+        'msg.verify_hint': 'Send: USER_ID BADGE (major/hodl/verified/none)',
+        'msg.verify_done': 'Badge updated: {badge}.',
+        'msg.verify_invalid': 'Invalid badge. Use: major / hodl / verified / none',
+        'msg.feature_requires': '🔒 This feature requires **{tier}**. Upgrade in Settings → Subscription.',
+        'msg.no_active_alerts': 'No active alerts.',
+        'msg.send_ton_wallet': '👛 Send a TON wallet address to look it up.',
+        'msg.ton_username_hint': 'Send a TON username or wallet to resolve (alice.ton / alice.t.me / EQB...).',
+        'msg.ton_gifts_hint': 'Send a TON username or wallet to list NFT gifts.',
+        'msg.ton_no_domains': 'No domains found for this wallet.',
+        'msg.ton_domain_not_found': 'Domain not found: {domain}',
+        'msg.ton_wallet_not_found': 'Wallet not found for this username.',
+        'msg.ton_gifts_empty': 'No NFT gifts found for this wallet.',
+        'msg.send_nft_search': '🔍 Send a collection name to search.',
+        'msg.send_portfolio_add': '➕ Send asset in format: TYPE SYMBOL AMOUNT COST\nExample: stock AAPL 5 180.50',
+        'msg.send_portfolio_remove': '➖ Send symbol to remove: SYMBOL',
+        'msg.send_alert_price': 'Send: TYPE SYMBOL TARGET_PRICE',
+        'msg.send_alert_percent': 'Send: TYPE SYMBOL PERCENT_MOVE',
+        'msg.subscription_manage': '💳 Manage billing: {link}',
+        'msg.subscription_upgrade': '🔗 Upgrade to {tier}: {link}',
+        'msg.language_set': 'Language updated to {language}.',
+        'msg.alerts_hint': '🔔 Create alerts in Portfolio → Alerts or send: ALERT SYMBOL PRICE',
+        'msg.crypto_find': 'Send a crypto ticker (e.g., BTC, ETH, SOL).',
+        'msg.crypto_not_found': 'Asset not found. Try a valid ticker (BTC, ETH, SOL).',
+        'msg.stocks_find': 'Send a stock or ETF ticker (e.g., AAPL, TSLA, SPY).',
+        'msg.stocks_find_menu': 'Choose a popular stock or search your own (ETFs work too).',
+        'msg.stocks_not_found': 'Ticker not found. Try a valid stock/ETF (AAPL, TSLA, SPY).',
+        'msg.stocks_valuation_hint': 'Send a stock ticker for Shiller/Graham valuation + community sentiment (AAPL, TSLA).',
+        'msg.choose_stock_source': 'Choose a source: pick from your portfolio or enter a ticker.',
+        'msg.choose_stock': 'Choose a stock/ETF from your portfolio (total: {count}).',
+        'msg.no_stock_holdings': 'No stocks/ETFs in your portfolio yet.',
+        'msg.dividends_empty': 'No dividend data available for this ticker.',
+        'msg.forex_find': 'Send a forex pair (e.g., EUR/USD).',
+        'msg.forex_not_found': 'Pair not found. Try a valid one like EUR/USD.',
+        'msg.choose_remove': 'Choose an asset to remove (total: {count}).',
+        'label.price': 'Price',
+        'label.change': 'Change',
+        'label.change_24h': '24h',
+        'label.market_cap': 'Cap',
+        'label.volume': 'Volume',
+        'label.pe': 'P/E',
+        'label.eps': 'EPS',
+        'label.beta': 'Beta',
+        'label.dividend_yield': 'Dividend Yield',
+        'label.high_52w': '52W High',
+        'label.low_52w': '52W Low',
+        'label.pb': 'P/B',
+        'label.roe': 'ROE',
+        'label.debt_to_equity': 'Debt/Equity',
+        'label.current_ratio': 'Current Ratio',
+        'label.rate': 'Rate',
+        'label.open': 'Open',
+        'label.high': 'High',
+        'label.low': 'Low',
+        'label.prev_close': 'Prev Close',
+        'label.asset_type': 'Type',
+        'label.amount': 'Amount',
+        'label.cost_basis': 'Cost Basis',
+        'label.domain': 'Domain',
+        'label.wallet': 'Wallet',
+        'label.expires': 'Expires',
+        'label.sites': 'Sites',
+        'label.holders': 'Holders',
+        'label.verification': 'Verification',
+        'section.ton_usernames': 'TON Usernames',
+        'section.ton_expiring': 'Expiring Domains',
+        'section.ton_gifts': 'TON NFT Gifts',
+        'section.ton_projects': 'TON Projects',
+        'section.holdings': 'Holdings',
+        'section.fundamentals': 'Fundamentals',
+        'section.news': 'News',
+        'section.sync_links': 'Linked Accounts',
+        'menu.sync.title': 'Portfolio Sync',
+        'menu.sync.body': 'Connect exchanges/wallets or import CSV to keep your portfolio in sync.',
+        'section.valuation': 'Valuation (Shiller & Graham)',
+        'section.community': 'Community Sentiment',
+        'label.cape_proxy': 'CAPE (proxy)',
+        'label.graham_value': 'Graham Value',
+        'label.growth_used': 'Growth used',
+        'label.margin_safety': 'Margin of Safety',
+        'label.score': 'Score',
+        'label.mentions': 'Mentions',
+        'label.pos_neg': 'Pos/Neg',
+        'msg.rate_limited': 'Rate limit exceeded. Try again.',
+        'hint.pe': 'Price vs earnings (valuation)',
+        'hint.eps': 'Earnings per share',
+        'hint.beta': 'Volatility vs market',
+        'hint.dividend': 'Annual yield',
+        'hint.market_cap': 'Company size',
+        'hint.range_52w': 'Price range for last 52 weeks',
+        'hint.pb': 'Price vs book value',
+        'hint.roe': 'Return on equity',
+        'hint.debt_to_equity': 'Debt load vs equity',
+        'hint.current_ratio': 'Short-term liquidity',
+        'msg.translating': '⏳ Translating…',
+        'msg.news_empty': 'No news available right now.',
+        'msg.translate_unavailable': 'Translation is not configured. Set TRANSLATE_API_URL to enable.',
+        'msg.translate_offline': 'Translation server is not reachable. Start LibreTranslate and try again.',
+        'msg.translate_failed': 'Translation failed. Try again in a moment.',
+
+        'msg.asset_added': '✅ Asset added to portfolio.',
+        'msg.asset_invalid': '⚠️ Invalid format. Use: TYPE SYMBOL AMOUNT COST',
+        'msg.asset_removed': '✅ Removed {count} item(s).',
+        'msg.no_holdings': 'No holdings yet. Add an asset to get started.',
+        'msg.sync_exchange_hint': 'Send: PROVIDER API_KEY API_SECRET (example: binance key secret).',
+        'msg.sync_wallet_hint': 'Send: TON WALLET [label] (example: ton EQB... MyWallet).',
+        'msg.sync_no_links': 'No linked accounts yet. Connect a wallet or exchange.',
+        'msg.sync_done': 'Sync completed: wallets {wallets}, exchanges {exchanges}, assets {assets}.',
+        'msg.sync_removed': 'Link removed.',
+        'msg.sync_exchange_unknown': 'Exchange not supported: {provider}.',
+        'msg.sync_exchange_missing': 'Exchange connector not installed. Install: pip install ccxt',
+        'msg.sync_exchange_failed': 'Exchange sync failed. Check API keys and permissions.',
+        'msg.sync_wallet_unknown': 'Wallet provider not supported: {provider}.',
+        'msg.sync_wallet_added': 'Wallet linked: {label}',
+        'msg.sync_exchange_added': 'Exchange linked: {label}',
+        'msg.import_csv_hint': 'Paste CSV with columns: asset_type,symbol,amount,cost_basis (or similar).',
+        'msg.import_csv_done': 'Imported {count} assets from CSV.',
+        'msg.export_csv': 'Your CSV export:',
+        'msg.invalid_csv': 'CSV import failed. Check the format.',
+        'msg.broadcast_queued': '📣 Broadcast queued.',
+        'msg.feature_toggled': '🎚 Feature "{feature}" toggled (placeholder).',
+        'msg.alert_price_created': '✅ Price alert created.',
+        'msg.alert_price_invalid': '⚠️ Invalid format. Use: TYPE SYMBOL TARGET_PRICE',
+        'msg.alert_percent_created': '✅ % move alert created.',
+        'msg.alert_percent_invalid': '⚠️ Invalid format. Use: TYPE SYMBOL PERCENT_MOVE',
+    },
+    'ru': {
+        'main.title': 'Инвестиционный Хаб',
+        'main.intro': (
+            'Привет, {username}!\n'
+            'Тариф: {tier}\n\n'
+            'Ваш личный инвестиционный хаб:\n'
+            '- Живые цены рынков\n'
+            '- Портфель и распределение активов\n'
+            '- Алерты по цене и % движению\n'
+            '- Короткие уроки по базе\n\n'
+            'Новичок? Нажмите **Начать** — быстрый тур за 60 секунд.'
+        ),
+        'menu.markets.title': 'Рынки',
+        'menu.markets.body': (
+            'Глобальные рынки в одном месте.\n'
+            'Внутри: Акции, ETF и Форекс.'
+        ),
+        'menu.stocks.title': 'Акции',
+        'menu.stocks.body': (
+            'Быстрые котировки и ключевые метрики.\n'
+            'Фундаментал — здоровье компании. Коэффициенты — оценка и эффективность.'
+        ),
+        'menu.forex.title': 'Форекс',
+        'menu.forex.body': (
+            'Актуальные курсы валют.\n'
+            'Смотри топ‑движения и ищи любые пары.'
+        ),
+        'menu.etfs.title': 'ETF',
+        'menu.etfs.body': 'Топ ETF с сортировкой по росту, падению и объёму.',
+        'menu.crypto.title': 'Крипто',
+        'menu.crypto.body': (
+            'Цены, доминация и ончейн‑сигналы.\n'
+            'Идеально для общего пульса рынка.'
+        ),
+        'menu.ton.title': 'TON',
+        'menu.ton.body': (
+            'Цена TON, кошельки и NFT‑коллекции.\n'
+            'Для мониторинга экосистемы TON.'
+        ),
+        'menu.nft.title': 'NFT',
+        'menu.nft.body': (
+            'Флор, топ‑коллекции и поиск.\n'
+            'Быстро сравнивайте спрос по коллекциям.'
+        ),
+        'menu.portfolio.title': 'Портфель',
+        'menu.portfolio.body': (
+            'Добавляйте позиции, смотрите распределение и PnL.\n'
+            'Алерты можно создавать прямо отсюда.'
+        ),
+        'menu.alerts.title': 'Алерты',
+        'menu.alerts.body': (
+            'Создавайте алерты по цене и % движению.\n'
+            'Следите за рынком без постоянного мониторинга.'
+        ),
+        'menu.education.title': 'Обучение',
+        'menu.education.body': (
+            'Мини‑уроки, глоссарий и квизы.\n'
+            'Подходит новичкам и для быстрых повторений.'
+        ),
+        'menu.news.title': 'Новости',
+        'menu.news.body': (
+            'Главные рыночные новости и по проектам.\n'
+            'Будьте в курсе событий, двигающих цену.'
+        ),
+        'menu.settings.title': 'Настройки',
+        'menu.settings.body': 'Тариф: {tier}\nУправление подпиской и настройками.',
+        'menu.profile.title': 'Профиль',
+        'menu.profile.body': 'Бейдж: {badge}\nТариф: {tier}\nНик: {username}',
+        'menu.admin.title': 'Админ-панель',
+        'menu.onboarding.title': 'С чего начать',
+        'menu.onboarding.body': (
+            '1) Посмотреть цены\n'
+            '2) Добавить позицию\n'
+            '3) Создать алерт\n\n'
+            'Советуем начать с:\n'
+            '- Цены криптовалют в один тап\n'
+            '- Добавление своей акции\n'
+            '- Урок на 2 минуты'
+        ),
+        'menu.language.title': 'Язык',
+        'menu.language.body': 'Выберите язык всех сообщений бота.',
+        'section.crypto_top': 'Крипто Топ 10',
+        'section.stocks_top': 'Акции Топ 10',
+        'section.funds_top': 'Фонды (ETF)',
+        'fund.spy': 'S&P 500 (крупные компании США)',
+        'fund.qqq': 'Nasdaq-100 (топ‑тех США)',
+        'fund.vti': 'Весь рынок акций США',
+        'fund.iwm': 'Малые компании США (Russell 2000)',
+        'fund.dia': 'Dow Jones 30 голубых фишек',
+        'fund.xlk': 'Сектор технологий США',
+        'fund.xlf': 'Финансовый сектор США',
+        'fund.xlv': 'Сектор здравоохранения США',
+
+        'tier.free': 'Бесплатный',
+        'tier.pro': 'Про',
+        'tier.elite': 'Элит',
+        'badge.none': 'Нет',
+        'badge.major': 'Major',
+        'badge.hodl': 'HODL',
+        'badge.verified': 'Verified',
+
+        'btn.start_here': '🧭 Начать',
+        'btn.quick_prices': '⚡ Быстрые цены',
+        'btn.markets': '📈 Рынки',
+        'btn.crypto': '🪙 Крипто',
+        'btn.nft': '💎 NFT',
+        'btn.ton': '⚡️ TON',
+        'btn.portfolio': '📊 Портфель',
+        'btn.education': '🎓 Обучение',
+        'btn.news': '📰 Новости',
+        'btn.settings': '⚙️ Настройки',
+        'btn.profile': '👤 Профиль',
+        'btn.admin': '🛠 Админ',
+        'btn.open_app': '🚀 Открыть App',
+        'btn.discord': '💬 Discord',
+        'btn.back': '⬅️ Назад',
+        'btn.prev': '⬅️ Назад',
+        'btn.main_menu': '🏠 Главное меню',
+        'btn.next': 'Далее ➡️',
+        'btn.stocks': '📈 Акции',
+        'btn.etfs': '📊 ETF',
+        'btn.forex': '💱 Форекс',
+        'btn.price': '💵 Цена',
+        'btn.fundamentals': '📘 Фундаментал',
+        'btn.ratios': '📊 Коэффициенты',
+        'btn.earnings': '📅 Отчётность',
+        'btn.dividends': '💸 Дивиденды',
+        'btn.top_stocks': '🏆 Топ акций',
+        'btn.top_gainers': '📈 Лидеры роста',
+        'btn.top_losers': '📉 Лидеры падения',
+        'btn.top_volume': '🔊 Топ объёма',
+        'btn.top_pairs': '💱 Топ пар',
+        'btn.list': '📋 Список',
+        'btn.find_pair': '🔎 Найти пару',
+        'btn.rates': '💱 Курсы',
+        'btn.prices': '🪙 Цены',
+        'btn.top_100': '🏆 Топ 100',
+        'btn.find_asset': '🔎 Найти актив',
+        'btn.find_stock': '🔎 Найти акцию',
+        'btn.valuation': '⚖️ Оценка',
+        'btn.from_portfolio': '📂 Из портфеля',
+        'btn.enter_ticker': '⌨️ Ввести тикер',
+        'btn.alerts': '🔔 Алерты',
+        'btn.dominance': '📊 Доминация',
+        'btn.onchain': '🧬 Ончейн',
+        'btn.nfts': '📦 NFT',
+        'btn.wallet_info': '👛 Кошелёк',
+        'btn.usernames': '👤 Юзернеймы',
+        'btn.gifts': '🎁 NFT‑подарки',
+        'btn.projects': '🚀 Проекты TON',
+        'btn.floor_prices': '💎 Флор',
+        'btn.collections': '🖼 Коллекции',
+        'btn.search': '🔍 Поиск',
+        'btn.add_asset': '➕ Добавить актив',
+        'btn.remove_asset': '➖ Удалить актив',
+        'btn.holdings': '📋 Позиции',
+        'btn.sync': '🔄 Синхронизация',
+        'btn.pnl': '📈 Прибыль',
+        'btn.allocation': '🥧 Распределение',
+        'btn.alerts_menu': '🔔 Алерты',
+        'btn.price_alert': '💵 Цена-алерт',
+        'btn.percent_alert': '📈 %-алерт',
+        'btn.view_alerts': '📋 Список алертов',
+        'btn.mini_lessons': '📘 Мини-уроки',
+        'btn.glossary': '📚 Глоссарий',
+        'btn.quizzes': '📝 Квизы',
+        'btn.headlines': '📰 Заголовки',
+        'btn.project_news': '🔎 Новости проекта',
+        'btn.translate': '🌐 Перевод',
+        'btn.original': '📝 Оригинал',
+        'btn.subscription': '💳 Подписка',
+        'btn.billing': '🧾 Биллинг',
+        'btn.upgrade_pro': '⬆️ Апгрейд Pro',
+        'btn.upgrade_elite': '⬆️ Апгрейд Elite',
+        'btn.broadcast': '📣 Рассылка',
+        'btn.user_stats': '👥 Статистика',
+        'btn.feature_toggle': '🎚 Переключатель',
+        'btn.verify': '✅ Верификация',
+        'btn.language': '🌐 Язык',
+        'btn.lang_ru': '🇷🇺 Русский',
+        'btn.lang_en': '🇬🇧 English',
+        'btn.create_alert': '🔔 Создать алерт',
+        'btn.sync_exchange': '🏦 Подключить биржу',
+        'btn.sync_wallet': '👛 Подключить кошелёк',
+        'btn.sync_run': '🚀 Запустить синхронизацию',
+        'btn.sync_links': '🔗 Подключения',
+        'btn.csv_import': '📥 Импорт CSV',
+        'btn.csv_export': '📤 Экспорт CSV',
+
+        'msg.unknown_action': 'Неизвестное действие. Используйте кнопки меню.',
+        'msg.admin_required': '🔒 Нужен доступ администратора.',
+        'msg.verify_hint': 'Отправьте: USER_ID BADGE (major/hodl/verified/none)',
+        'msg.verify_done': 'Бейдж обновлён: {badge}.',
+        'msg.verify_invalid': 'Неверный бейдж. Используй: major / hodl / verified / none',
+        'msg.feature_requires': '🔒 Эта функция доступна на тарифе **{tier}**. Апгрейд в Настройки → Подписка.',
+        'msg.no_active_alerts': 'Нет активных алертов.',
+        'msg.send_ton_wallet': '👛 Отправьте адрес TON кошелька для проверки.',
+        'msg.ton_username_hint': 'Введите TON юзернейм или кошелёк (alice.ton / alice.t.me / EQB...).',
+        'msg.ton_gifts_hint': 'Введите TON юзернейм или кошелёк для списка NFT‑подарков.',
+        'msg.ton_no_domains': 'Для этого кошелька домены не найдены.',
+        'msg.ton_domain_not_found': 'Домен не найден: {domain}',
+        'msg.ton_wallet_not_found': 'Кошелёк не найден по этому юзернейму.',
+        'msg.ton_gifts_empty': 'NFT‑подарки не найдены.',
+        'msg.send_nft_search': '🔍 Введите название коллекции.',
+        'msg.send_portfolio_add': '➕ Формат: TYPE SYMBOL AMOUNT COST\nПример: stock AAPL 5 180.50',
+        'msg.send_portfolio_remove': '➖ Введите символ для удаления: SYMBOL',
+        'msg.send_alert_price': 'Формат: TYPE SYMBOL TARGET_PRICE',
+        'msg.send_alert_percent': 'Формат: TYPE SYMBOL PERCENT_MOVE',
+        'msg.subscription_manage': '💳 Управление подпиской: {link}',
+        'msg.subscription_upgrade': '🔗 Апгрейд до {tier}: {link}',
+        'msg.language_set': 'Язык изменён на {language}.',
+        'msg.alerts_hint': '🔔 Алерты: Портфель → Алерты или команда: ALERT SYMBOL PRICE',
+        'msg.crypto_find': 'Введите тикер криптовалюты (например BTC, ETH, SOL).',
+        'msg.crypto_not_found': 'Актив не найден. Попробуйте другой тикер.',
+        'msg.stocks_find': 'Введите тикер акции или ETF (например AAPL, TSLA, SPY).',
+        'msg.stocks_find_menu': 'Выберите популярную акцию или найдите свою (ETF тоже работают).',
+        'msg.stocks_not_found': 'Тикер не найден. Попробуйте другую акцию/ETF.',
+        'msg.stocks_valuation_hint': 'Введите тикер для оценки по Шиллеру/Грэму и комьюнити (AAPL, TSLA).',
+        'msg.choose_stock_source': 'Выберите источник: портфель или ввод тикера.',
+        'msg.choose_stock': 'Выберите акцию/ETF из портфеля (всего: {count}).',
+        'msg.no_stock_holdings': 'В портфеле пока нет акций/ETF.',
+        'msg.dividends_empty': 'Нет данных по дивидендам для этого тикера.',
+        'msg.forex_find': 'Введите валютную пару (например EUR/USD).',
+        'msg.forex_not_found': 'Пара не найдена. Пример: EUR/USD.',
+        'msg.choose_remove': 'Выберите актив для удаления (всего: {count}).',
+        'label.price': 'Цена',
+        'label.change': 'Изменение',
+        'label.change_24h': '24ч',
+        'label.market_cap': 'Капитализация',
+        'label.volume': 'Объём',
+        'label.pe': 'P/E',
+        'label.eps': 'EPS',
+        'label.beta': 'Бета',
+        'label.dividend_yield': 'Див. доходность',
+        'label.high_52w': 'Макс. 52н',
+        'label.low_52w': 'Мин. 52н',
+        'label.pb': 'P/B',
+        'label.roe': 'ROE',
+        'label.debt_to_equity': 'Долг/Капитал',
+        'label.current_ratio': 'Текущ. ликвидность',
+        'label.rate': 'Курс',
+        'label.open': 'Открытие',
+        'label.high': 'Макс.',
+        'label.low': 'Мин.',
+        'label.prev_close': 'Пред. закрытие',
+        'label.asset_type': 'Тип',
+        'label.amount': 'Количество',
+        'label.cost_basis': 'Средняя цена',
+        'label.domain': 'Домен',
+        'label.wallet': 'Кошелёк',
+        'label.expires': 'Истекает',
+        'label.sites': 'Сайты',
+        'label.holders': 'Холдеры',
+        'label.verification': 'Проверка',
+        'section.ton_usernames': 'TON Юзернеймы',
+        'section.ton_expiring': 'Истекающие домены',
+        'section.ton_gifts': 'NFT‑подарки TON',
+        'section.ton_projects': 'Проекты TON',
+        'section.holdings': 'Позиции',
+        'section.fundamentals': 'Фундаментал',
+        'section.news': 'Новости',
+        'section.sync_links': 'Подключенные аккаунты',
+        'menu.sync.title': 'Синхронизация портфеля',
+        'menu.sync.body': 'Подключите биржи/кошельки или импортируйте CSV.',
+        'section.valuation': 'Оценка (Шиллер и Грэм)',
+        'section.community': 'Комьюнити‑оценка',
+        'label.cape_proxy': 'CAPE (прибл.)',
+        'label.graham_value': 'Оценка Грэма',
+        'label.growth_used': 'Исп. рост',
+        'label.margin_safety': 'Запас прочности',
+        'label.score': 'Скор',
+        'label.mentions': 'Упоминания',
+        'label.pos_neg': 'Плюс/Минус',
+        'msg.rate_limited': 'Слишком много запросов. Попробуйте позже.',
+        'hint.pe': 'Цена к прибыли (оценка)',
+        'hint.eps': 'Прибыль на акцию',
+        'hint.beta': 'Волатильность vs рынок',
+        'hint.dividend': 'Годовая доходность',
+        'hint.market_cap': 'Размер компании',
+        'hint.range_52w': 'Диапазон за 52 недели',
+        'hint.pb': 'Цена к балансу',
+        'hint.roe': 'Рентабельность капитала',
+        'hint.debt_to_equity': 'Долговая нагрузка',
+        'hint.current_ratio': 'Краткосрочная ликвидность',
+        'msg.translating': '⏳ Перевожу…',
+        'msg.news_empty': 'Пока нет новостей.',
+        'msg.translate_unavailable': 'Перевод не настроен. Укажите TRANSLATE_API_URL.',
+        'msg.translate_offline': 'Сервер перевода недоступен. Запусти LibreTranslate и попробуй снова.',
+        'msg.translate_failed': 'Перевод не удался. Попробуй ещё раз.',
+
+        'msg.asset_added': '✅ Актив добавлен в портфель.',
+        'msg.asset_invalid': '⚠️ Неверный формат. Используйте: TYPE SYMBOL AMOUNT COST',
+        'msg.asset_removed': '✅ Удалено {count} позици(й).',
+        'msg.no_holdings': 'Пока нет позиций. Добавьте актив.',
+        'msg.sync_exchange_hint': 'Отправьте: PROVIDER API_KEY API_SECRET (пример: binance key secret).',
+        'msg.sync_wallet_hint': 'Отправьте: TON КОШЕЛЁК [название] (пример: ton EQB... Мой).',
+        'msg.sync_no_links': 'Нет подключенных аккаунтов. Добавьте биржу или кошелёк.',
+        'msg.sync_done': 'Синхронизация завершена: кошельки {wallets}, биржи {exchanges}, активы {assets}.',
+        'msg.sync_removed': 'Подключение удалено.',
+        'msg.sync_exchange_unknown': 'Биржа не поддерживается: {provider}.',
+        'msg.sync_exchange_missing': 'Коннектор биржи не установлен. Установите: pip install ccxt',
+        'msg.sync_exchange_failed': 'Ошибка синхронизации биржи. Проверьте ключи и права.',
+        'msg.sync_wallet_unknown': 'Провайдер кошелька не поддерживается: {provider}.',
+        'msg.sync_wallet_added': 'Кошелёк подключен: {label}',
+        'msg.sync_exchange_added': 'Биржа подключена: {label}',
+        'msg.import_csv_hint': 'Вставьте CSV с колонками: asset_type,symbol,amount,cost_basis (или похожими).',
+        'msg.import_csv_done': 'Импортировано активов: {count}.',
+        'msg.export_csv': 'Ваш CSV экспорт:',
+        'msg.invalid_csv': 'Не удалось импортировать CSV. Проверьте формат.',
+        'msg.broadcast_queued': '📣 Рассылка запланирована.',
+        'msg.feature_toggled': '🎚 Функция "{feature}" переключена (заглушка).',
+        'msg.alert_price_created': '✅ Цена-алерт создан.',
+        'msg.alert_price_invalid': '⚠️ Неверный формат. TYPE SYMBOL TARGET_PRICE',
+        'msg.alert_percent_created': '✅ %-алерт создан.',
+        'msg.alert_percent_invalid': '⚠️ Неверный формат. TYPE SYMBOL PERCENT_MOVE',
+    },
+}
+
+
+def normalize_lang(code: str | None) -> str:
+    if not code:
+        return 'ru'
+    code = code.lower().strip()
+    if code.startswith('ru'):
+        return 'ru'
+    if code.startswith('en'):
+        return 'en'
+    return 'ru'
+
+
+def t(key: str, lang: str = 'en', **kwargs: Any) -> str:
+    lang = lang if lang in TRANSLATIONS else 'en'
+    template = TRANSLATIONS.get(lang, {}).get(key) or TRANSLATIONS['en'].get(key) or key
+    try:
+        return template.format(**kwargs)
+    except Exception:
+        return template
