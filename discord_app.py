@@ -130,7 +130,10 @@ class InvestmentBot(discord.Client):
     async def render_action(self, interaction: discord.Interaction, action: str, user: UserContext) -> None:
         if action.startswith('menu:'):
             menu_id = action.split(':', 1)[1]
-            message = self.router.menu(menu_id, user)
+            if menu_id == 'portfolio':
+                message = await self.router.build_portfolio_menu(user)
+            else:
+                message = self.router.menu(menu_id, user)
             await self.render_message(interaction, message, user)
             return
         if action.startswith('action:'):

@@ -145,14 +145,7 @@ class Router:
             ),
             'portfolio': UIMessage(
                 text=format_section(self._t(user, 'menu.portfolio.title'), self._t(user, 'menu.portfolio.body')),
-                buttons=[
-                    [self._btn(user, 'btn.add_asset', 'action:portfolio_add'), self._btn(user, 'btn.remove_asset', 'action:portfolio_remove')],
-                    [self._btn(user, 'btn.holdings', 'action:portfolio_list')],
-                    [self._btn(user, 'btn.pnl', 'action:portfolio_pnl'), self._btn(user, 'btn.allocation', 'action:portfolio_allocation')],
-                    [self._btn(user, 'btn.sync', 'menu:portfolio_sync')],
-                    [self._btn(user, 'btn.alerts_menu', 'menu:alerts')],
-                    [self._btn(user, 'btn.back', 'menu:main')],
-                ],
+                buttons=self._portfolio_buttons(user),
             ),
             'portfolio_sync': UIMessage(
                 text=format_section(self._t(user, 'menu.sync.title'), self._t(user, 'menu.sync.body')),
@@ -193,6 +186,35 @@ class Router:
             'profile': self._profile_menu(user),
         }
         return menus.get(menu_id, self.main_menu(user))
+
+    def _portfolio_buttons(self, user: UserContext) -> list[list[ButtonSpec]]:
+        return [
+            [self._btn(user, 'btn.add_asset', 'action:portfolio_add'), self._btn(user, 'btn.remove_asset', 'action:portfolio_remove')],
+            [self._btn(user, 'btn.holdings', 'action:portfolio_list')],
+            [self._btn(user, 'btn.pnl', 'action:portfolio_pnl'), self._btn(user, 'btn.allocation', 'action:portfolio_allocation')],
+            [self._btn(user, 'btn.sync', 'menu:portfolio_sync')],
+            [self._btn(user, 'btn.alerts_menu', 'menu:alerts')],
+            [self._btn(user, 'btn.back', 'menu:main')],
+        ]
+
+    async def build_portfolio_menu(self, user: UserContext) -> UIMessage:
+        items = await self.portfolio.list_assets(user)
+        if not items:
+            text = format_section(self._t(user, 'menu.portfolio.title'), self._t(user, 'msg.no_holdings'))
+            return UIMessage(text=text, buttons=self._portfolio_buttons(user))
+
+        lines = [self._t(user, 'menu.portfolio.body'), "", f"*{self._t(user, 'section.holdings')}*"]
+        for item in items[:15]:
+            symbol = item.get('symbol', 'N/A')
+            asset_type = item.get('asset_type', 'N/A')
+            amount = item.get('amount', 'N/A')
+            cost = item.get('cost_basis', 'N/A')
+            lines.append(
+                f"{symbol} | {self._t(user, 'label.asset_type')}: {asset_type} | "
+                f"{self._t(user, 'label.amount')}: {amount} | {self._t(user, 'label.cost_basis')}: {cost}"
+            )
+        text = format_section(self._t(user, 'menu.portfolio.title'), "\n".join(lines))
+        return UIMessage(text=text, buttons=self._portfolio_buttons(user))
 
     def _settings_menu(self, user: UserContext) -> UIMessage:
         buttons = [

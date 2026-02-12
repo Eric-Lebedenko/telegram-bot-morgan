@@ -289,6 +289,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 mention = update.effective_user.mention_markdown()
                 context.user_data['mention'] = mention
             message = router.main_menu(user, mention)
+        elif menu_id == 'portfolio':
+            message = await router.build_portfolio_menu(user)
         else:
             message = router.menu(menu_id, user)
         await _send_ui(update, context, message)
