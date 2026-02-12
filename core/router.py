@@ -287,6 +287,8 @@ class Router:
             'nft_collections': lambda: self._nft_collections(user),
             'nft_search': lambda: self._nft_search(user),
             'portfolio_add': lambda: self._portfolio_add(user),
+            'portfolio_add_type': lambda: self._portfolio_add_type(user, payload),
+            'portfolio_add_custom': lambda: self._portfolio_add_custom(user),
             'portfolio_remove': lambda: self._portfolio_remove_menu(user, payload),
             'portfolio_remove_symbol': lambda: self._portfolio_remove_symbol(user, payload),
             'portfolio_list': lambda: self._portfolio_list(user),
@@ -1072,9 +1074,27 @@ class Router:
 
     async def _portfolio_add(self, user: UserContext) -> UIMessage:
         return UIMessage(
+            text=self._t(user, 'msg.portfolio_add_choose_type'),
+            buttons=[
+                [self._btn(user, 'btn.add_stock', 'action:portfolio_add_type:stock'), self._btn(user, 'btn.add_crypto', 'action:portfolio_add_type:crypto')],
+                [self._btn(user, 'btn.add_fund', 'action:portfolio_add_type:fund'), self._btn(user, 'btn.add_custom', 'action:portfolio_add_custom')],
+                [self._btn(user, 'btn.back', 'menu:portfolio')],
+            ],
+        )
+
+    async def _portfolio_add_custom(self, user: UserContext) -> UIMessage:
+        return UIMessage(
             text=self._t(user, 'msg.send_portfolio_add'),
-            expect_input='portfolio_add',
-            input_hint='TYPE: stock/crypto/forex/nft',
+            expect_input='portfolio_add_full',
+            input_hint='TYPE SYMBOL AMOUNT COST',
+        )
+
+    async def _portfolio_add_type(self, user: UserContext, payload: str | None) -> UIMessage:
+        asset_type = (payload or 'stock').lower()
+        return UIMessage(
+            text=self._t(user, 'msg.send_portfolio_add_details', asset_type=asset_type),
+            expect_input='portfolio_add_details',
+            input_hint='AAPL 5 180.50',
         )
 
     async def _portfolio_remove(self, user: UserContext) -> UIMessage:
@@ -1539,6 +1559,8 @@ ACTION_BACK_MENU = {
     'nft_collections': 'nft',
     'nft_search': 'nft',
     'portfolio_add': 'portfolio',
+    'portfolio_add_type': 'portfolio',
+    'portfolio_add_custom': 'portfolio',
     'portfolio_remove': 'portfolio',
     'portfolio_remove_symbol': 'portfolio',
     'portfolio_list': 'portfolio',

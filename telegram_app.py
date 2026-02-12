@@ -299,6 +299,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             action, payload = action_payload.split(':', 1)
         else:
             action, payload = action_payload, None
+        if action == 'portfolio_add_type':
+            context.user_data['portfolio_add_type'] = payload
         message = await router.handle_action(action, user, payload)
         context.user_data['awaiting'] = message.expect_input
         context.user_data['awaiting_action'] = action if message.expect_input else None
@@ -341,6 +343,36 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         try:
             asset_type, symbol, amount, cost = text.split()[:4]
             await router.portfolio.add_asset(user, asset_type.lower(), symbol.upper(), float(amount), float(cost))
+            response = await router.handle_action('portfolio_list', user)
+        except Exception:
+            response = UIMessage(text=t('msg.asset_invalid', user.language))
+        context.user_data['awaiting'] = None
+        response = _ensure_buttons(user, response, back_menu)
+        await _edit_menu_message(update, context, response)
+        return
+
+    if awaiting == 'portfolio_add_full':
+        try:
+            asset_type, symbol, amount, cost = text.split()[:4]
+            await router.portfolio.add_asset(user, asset_type.lower(), symbol.upper(), float(amount), float(cost))
+            response = await router.handle_action('portfolio_list', user)
+        except Exception:
+            response = UIMessage(text=t('msg.asset_invalid', user.language))
+        context.user_data['awaiting'] = None
+        response = _ensure_buttons(user, response, back_menu)
+        await _edit_menu_message(update, context, response)
+        return
+
+    if awaiting == 'portfolio_add_details':
+        asset_type = (context.user_data.get('portfolio_add_type') or 'stock').lower()
+        try:
+            parts = text.split()
+            if len(parts) < 2:
+                raise ValueError('invalid')
+            symbol = parts[0].upper()
+            amount = float(parts[1])
+            cost = float(parts[2]) if len(parts) > 2 else 0.0
+            await router.portfolio.add_asset(user, asset_type, symbol, amount, cost)
             response = await router.handle_action('portfolio_list', user)
         except Exception:
             response = UIMessage(text=t('msg.asset_invalid', user.language))
