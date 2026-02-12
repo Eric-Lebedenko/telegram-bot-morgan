@@ -209,9 +209,10 @@ class Router:
             asset_type = item.get('asset_type', 'N/A')
             amount = item.get('amount', 'N/A')
             cost = item.get('cost_basis', 'N/A')
+            link = self._link_for_asset(str(asset_type), str(symbol))
             lines.append(
                 f"{symbol} | {self._t(user, 'label.asset_type')}: {asset_type} | "
-                f"{self._t(user, 'label.amount')}: {amount} | {self._t(user, 'label.cost_basis')}: {cost}"
+                f"{self._t(user, 'label.amount')}: {amount} | {self._t(user, 'label.cost_basis')}: {cost} | {link}"
             )
         text = format_section(self._t(user, 'menu.portfolio.title'), "\n".join(lines))
         return UIMessage(text=text, buttons=self._portfolio_buttons(user))
@@ -563,6 +564,7 @@ class Router:
         data = await self.stocks.get_metrics(sym)
         lines = [
             f"*{sym}*",
+            f"{self._yahoo_equity_url(sym)}",
             f"*{self._t(user, 'label.market_cap')}* — {self._t(user, 'hint.market_cap')}:\n{self._fmt_num(data.get('marketCapitalization'))}",
             f"*{self._t(user, 'label.eps')}* — {self._t(user, 'hint.eps')}:\n{self._fmt_num(data.get('epsTTM'))}",
             f"*{self._t(user, 'label.dividend_yield')}* — {self._t(user, 'hint.dividend')}:\n{self._fmt_num(data.get('dividendYieldIndicatedAnnual'), suffix='%')}",
@@ -578,6 +580,7 @@ class Router:
         data = await self.stocks.get_metrics(sym)
         lines = [
             f"*{sym}*",
+            f"{self._yahoo_equity_url(sym)}",
             f"*{self._t(user, 'label.pe')}* — {self._t(user, 'hint.pe')}:\n{self._fmt_num(data.get('peNormalizedAnnual') or data.get('peBasicExclExtraTTM'))}",
             f"*{self._t(user, 'label.pb')}* — {self._t(user, 'hint.pb')}:\n{self._fmt_num(data.get('pbAnnual'))}",
             f"*{self._t(user, 'label.roe')}* — {self._t(user, 'hint.roe')}:\n{self._fmt_num(data.get('roeTTM'), suffix='%')}",
@@ -591,7 +594,7 @@ class Router:
             return UIMessage(text=missing_access_message('stocks_dividends', user.language))
         sym = symbol.upper()
         items = await self.stocks.get_dividends(sym)
-        lines = [f"*{sym}*"]
+        lines = [f"*{sym}*", f"{self._yahoo_equity_url(sym)}"]
         if items:
             lines.extend([f"{i['date']} — {i['amount']}" for i in items])
         else:
@@ -603,7 +606,7 @@ class Router:
             return UIMessage(text=missing_access_message('stocks_earnings', user.language))
         sym = symbol.upper()
         items = await self.stocks.get_earnings(sym)
-        lines = [f"*{sym}*"]
+        lines = [f"*{sym}*", f"{self._yahoo_equity_url(sym)}"]
         if items:
             lines.extend([f"{i['date']} — EPS {i['eps']}" for i in items])
         else:
@@ -653,6 +656,7 @@ class Router:
         quote = await self.stocks.get_price(sym)
         metrics = await self.stocks.get_metrics(sym)
         sentiment = await self.stocks.get_social_sentiment(sym)
+        link = self._yahoo_equity_url(sym)
 
         price_raw = quote.get('price')
         change_raw = quote.get('change')
@@ -667,6 +671,7 @@ class Router:
 
         lines = [
             f"*{sym}*",
+            f"{link}",
             f"{self._t(user, 'label.price')}: {price}",
             f"{self._t(user, 'label.change')}: {change}",
             "",
@@ -697,6 +702,7 @@ class Router:
         quote = await self.stocks.get_quote_details(sym)
         metrics = await self.stocks.get_metrics(sym)
         news_items = await self.news.get_project_news(sym)
+        link = self._yahoo_equity_url(sym)
 
         price = self._fmt_price(quote.get('price'))
         change = self._fmt_pct(quote.get('change_pct'))
@@ -715,6 +721,7 @@ class Router:
 
         lines = [
             f"*{sym}*",
+            f"{link}",
             f"{self._t(user, 'label.price')}: {price}",
             f"{self._t(user, 'label.change_24h')}: {change}",
             f"{self._t(user, 'label.volume')}: {volume}",
@@ -759,6 +766,7 @@ class Router:
         news_items = await self.news.get_project_news(sym)
         if not quote:
             return UIMessage(text=self._t(user, 'msg.crypto_not_found'))
+        link = self._yahoo_crypto_url(sym)
         price = self._fmt_price(quote.get('price'))
         change = self._fmt_pct(quote.get('change_24h'))
         cap = self._fmt_cap(quote.get('market_cap'))
@@ -766,6 +774,7 @@ class Router:
 
         lines = [
             f"*{sym}*",
+            f"{link}",
             f"{self._t(user, 'label.price')}: {price}",
             f"{self._t(user, 'label.change_24h')}: {change}",
             f"{self._t(user, 'label.market_cap')}: {cap}",
@@ -790,6 +799,7 @@ class Router:
         data = await self.forex.get_pair_change(pair)
         if not data:
             return UIMessage(text=self._t(user, 'msg.forex_not_found'))
+        link = self._yahoo_forex_url(pair)
         rate = data.get('rate')
         change = data.get('change_pct')
         open_v = data.get('open')
@@ -806,6 +816,7 @@ class Router:
 
         lines = [
             f"*{pair}*",
+            f"{link}",
             f"{self._t(user, 'label.rate')}: {rate_str}",
             f"{self._t(user, 'label.change_24h')}: {self._fmt_pct(change)}",
             f"{self._t(user, 'label.open')}: {open_str} | {self._t(user, 'label.prev_close')}: {prev_str}",
@@ -836,6 +847,34 @@ class Router:
             return f"{int(value)}"
         return 'N/A'
 
+    def _yahoo_equity_url(self, symbol: str) -> str:
+        sym = (symbol or '').upper().strip()
+        if not sym or sym == 'N/A':
+            return 'N/A'
+        sym = sym.replace('.', '-')
+        return f"https://finance.yahoo.com/quote/{sym}"
+
+    def _yahoo_crypto_url(self, symbol: str) -> str:
+        sym = (symbol or '').upper().strip()
+        if not sym or sym == 'N/A':
+            return 'N/A'
+        return f"https://finance.yahoo.com/quote/{sym}-USD"
+
+    def _yahoo_forex_url(self, pair: str) -> str:
+        sym = (pair or '').upper().strip()
+        if not sym or sym == 'N/A':
+            return 'N/A'
+        sym = sym.replace('/', '')
+        return f"https://finance.yahoo.com/quote/{sym}=X"
+
+    def _link_for_asset(self, asset_type: str, symbol: str) -> str:
+        at = (asset_type or '').lower()
+        if at in ('crypto', 'ton', 'jetton'):
+            return self._yahoo_crypto_url(symbol)
+        if at in ('forex', 'fx'):
+            return self._yahoo_forex_url(symbol)
+        return self._yahoo_equity_url(symbol)
+
     async def _etfs(self, user: UserContext) -> UIMessage:
         items = await self.stocks.get_top_etfs()
         return UIMessage(text=format_section(self._t(user, 'btn.etfs'), "\n".join(items)))
@@ -858,7 +897,8 @@ class Router:
             q = stock_quotes.get(sym, {})
             price = q.get('price', 'N/A')
             change = q.get('change', 'N/A')
-            stock_lines.append(f"{sym}: {price} | {label_change}: {change}")
+            link = self._yahoo_equity_url(sym)
+            stock_lines.append(f"{sym}: {price} | {label_change}: {change} | {link}")
         stocks_text = format_section(self._t(user, 'section.stocks_top'), "\n".join(stock_lines) if stock_lines else 'N/A')
 
         fund_symbols = ['SPY', 'QQQ', 'VTI', 'IWM', 'DIA', 'XLK', 'XLF', 'XLV']
@@ -869,7 +909,8 @@ class Router:
             price = q.get('price', 'N/A')
             change = q.get('change', 'N/A')
             description = self._t(user, f'fund.{sym.lower()}')
-            fund_lines.append(f"{sym}: {price} | {label_change}: {change} | {description}")
+            link = self._yahoo_equity_url(sym)
+            fund_lines.append(f"{sym}: {price} | {label_change}: {change} | {description} | {link}")
         funds_text = format_section(self._t(user, 'section.funds_top'), "\n".join(fund_lines) if fund_lines else 'N/A')
 
         back_menu = (payload or 'crypto').strip()
@@ -935,14 +976,16 @@ class Router:
         cap = self._fmt_cap(asset.get('market_cap'))
         label_24h = self._t(user, 'label.change_24h')
         label_cap = self._t(user, 'label.market_cap')
-        return f"{rank}. {symbol} | {price} | {label_24h}: {change} | {label_cap}: {cap}"
+        link = self._yahoo_crypto_url(str(symbol))
+        return f"{rank}. {symbol} | {price} | {label_24h}: {change} | {label_cap}: {cap} | {link}"
 
     def _format_stock_row(self, user: UserContext, item: dict[str, object]) -> str:
         symbol = item.get('symbol') or 'N/A'
         price = self._fmt_price(item.get('price'))
         change = self._fmt_pct(item.get('change_pct') if item.get('change_pct') is not None else item.get('change'))
         volume = self._fmt_num(item.get('volume'))
-        return f"{symbol} | {self._t(user, 'label.price')}: {price} | {self._t(user, 'label.change_24h')}: {change} | {self._t(user, 'label.volume')}: {volume}"
+        link = self._yahoo_equity_url(str(symbol))
+        return f"{symbol} | {self._t(user, 'label.price')}: {price} | {self._t(user, 'label.change_24h')}: {change} | {self._t(user, 'label.volume')}: {volume} | {link}"
 
     def _format_forex_row(self, user: UserContext, item: dict[str, object]) -> str:
         pair = item.get('pair') or 'N/A'
@@ -950,7 +993,8 @@ class Router:
         change = item.get('change_pct')
         rate_str = f"{rate:.5f}" if isinstance(rate, (int, float)) else 'N/A'
         change_str = f"{change:+.2f}%" if isinstance(change, (int, float)) else 'N/A'
-        return f"{pair} | {self._t(user, 'label.rate')}: {rate_str} | {self._t(user, 'label.change_24h')}: {change_str}"
+        link = self._yahoo_forex_url(str(pair))
+        return f"{pair} | {self._t(user, 'label.rate')}: {rate_str} | {self._t(user, 'label.change_24h')}: {change_str} | {link}"
 
     def _format_jetton_row(self, user: UserContext, jetton: dict[str, object], index: int) -> str:
         metadata = jetton.get('metadata') or {}
@@ -1192,9 +1236,10 @@ class Router:
             symbol = item.get('symbol', 'N/A')
             amount = item.get('amount', 'N/A')
             cost = item.get('cost_basis', 'N/A')
+            link = self._link_for_asset(str(asset_type), str(symbol))
             lines.append(
                 f"{symbol} | {self._t(user, 'label.asset_type')}: {asset_type} | "
-                f"{self._t(user, 'label.amount')}: {amount} | {self._t(user, 'label.cost_basis')}: {cost}"
+                f"{self._t(user, 'label.amount')}: {amount} | {self._t(user, 'label.cost_basis')}: {cost} | {link}"
             )
         return UIMessage(text="\n".join(lines))
 
