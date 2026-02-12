@@ -44,6 +44,8 @@ class StocksService:
             change_pct = data.get('dp')
             prev_close = data.get('pc')
             volume = await self._get_daily_volume(symbol)
+            if volume is None:
+                volume = await self._get_average_volume(symbol)
             return {
                 'symbol': symbol,
                 'price': price,
@@ -85,6 +87,30 @@ class StocksService:
             vols = data.get('v', [])
             if vols:
                 return float(vols[-1])
+            return None
+        except Exception:
+            return None
+
+    async def _get_average_volume(self, symbol: str) -> float | None:
+        try:
+            data = await self.http.get_json(
+                'https://finnhub.io/api/v1/stock/metric',
+                params={'symbol': symbol, 'metric': 'all', 'token': self.cfg.finnhub_api_key},
+            )
+            metric = data.get('metric', {}) if isinstance(data, dict) else {}
+            candidates = [
+                metric.get('10DayAverageTradingVolume'),
+                metric.get('3MonthAverageTradingVolume'),
+                metric.get('averageDailyVolume10Day'),
+                metric.get('averageDailyVolume3Month'),
+            ]
+            for value in candidates:
+                try:
+                    if value is None:
+                        continue
+                    return float(value)
+                except Exception:
+                    continue
             return None
         except Exception:
             return None
