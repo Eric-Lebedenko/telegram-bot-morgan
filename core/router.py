@@ -85,7 +85,7 @@ class Router:
             'onboarding': UIMessage(
                 text=format_section(self._t(user, 'menu.onboarding.title'), self._t(user, 'menu.onboarding.body')),
                 buttons=[
-                    [self._btn(user, 'btn.prices', 'action:crypto_prices'), self._btn(user, 'btn.add_asset', 'action:portfolio_add')],
+                    [self._btn(user, 'btn.prices', 'action:crypto_prices:onboarding'), self._btn(user, 'btn.add_asset', 'action:portfolio_add')],
                     [self._btn(user, 'btn.create_alert', 'menu:alerts'), self._btn(user, 'btn.mini_lessons', 'action:education_lessons')],
                     [self._btn(user, 'btn.back', 'menu:main')],
                 ],
@@ -845,7 +845,7 @@ class Router:
         lines = [f"USD/{k}: {v}" for k, v in data.items()]
         return UIMessage(text=format_section(self._t(user, 'btn.rates'), "\n".join(lines)))
 
-    async def _crypto_prices(self, user: UserContext) -> UIMessage:
+    async def _crypto_prices(self, user: UserContext, payload: str | None = None) -> UIMessage:
         crypto_assets = await self.crypto.get_top_assets(10)
         crypto_lines = [self._format_asset_row(user, a) for a in crypto_assets]
         crypto_text = format_section(self._t(user, 'section.crypto_top'), "\n".join(crypto_lines) if crypto_lines else 'N/A')
@@ -872,7 +872,14 @@ class Router:
             fund_lines.append(f"{sym}: {price} | {label_change}: {change} | {description}")
         funds_text = format_section(self._t(user, 'section.funds_top'), "\n".join(fund_lines) if fund_lines else 'N/A')
 
-        return UIMessage(text=f"{crypto_text}\n\n{stocks_text}\n\n{funds_text}")
+        back_menu = (payload or 'crypto').strip()
+        if back_menu not in ('crypto', 'onboarding', 'main'):
+            back_menu = 'crypto'
+        buttons = [
+            [self._btn(user, 'btn.back', f'menu:{back_menu}')],
+            [self._btn(user, 'btn.main_menu', 'menu:main')],
+        ]
+        return UIMessage(text=f"{crypto_text}\n\n{stocks_text}\n\n{funds_text}", buttons=buttons)
 
     async def _crypto_dominance(self, user: UserContext) -> UIMessage:
         data = await self.crypto.get_dominance()
