@@ -1339,7 +1339,7 @@ class Router:
 
     async def _education_lessons(self, user: UserContext, payload: str | None = None) -> UIMessage:
         page = int(payload or '1')
-        lessons = await self.education.get_lessons()
+        lessons = await self.education.get_lessons(user.language)
         page_items, page, total = paginate(lessons, page)
         text = format_section(self._t(user, 'btn.mini_lessons'), "\n".join(page_items))
         buttons = []
@@ -1351,7 +1351,7 @@ class Router:
         return UIMessage(text=text, buttons=buttons)
 
     async def _education_glossary(self, user: UserContext) -> UIMessage:
-        items = await self.education.get_glossary()
+        items = await self.education.get_glossary(user.language)
         return UIMessage(text=format_section(self._t(user, 'btn.glossary'), "\n".join(items)))
 
     async def _education_quiz(self, user: UserContext) -> UIMessage:

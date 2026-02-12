@@ -23,6 +23,7 @@ class Config:
     opensea_api_key: str
     translate_api_url: str
     translate_api_key: str
+    fred_api_key: str
 
     stripe_secret_key: str
     stripe_webhook_secret: str
@@ -68,6 +69,7 @@ def load_config() -> Config:
         opensea_api_key=_get_env('OPENSEA_API_KEY'),
         translate_api_url=_get_env('TRANSLATE_API_URL'),
         translate_api_key=_get_env('TRANSLATE_API_KEY'),
+        fred_api_key=_get_env('FRED_API_KEY'),
 
         stripe_secret_key=_get_env('STRIPE_SECRET_KEY'),
         stripe_webhook_secret=_get_env('STRIPE_WEBHOOK_SECRET'),

@@ -232,13 +232,13 @@ async def portfolio_items(user: AuthUser = Depends(telegram_auth)) -> dict:
 
 @app.get('/api/education/lessons')
 async def education_lessons(user: AuthUser = Depends(telegram_auth)) -> dict:
-    lessons = await education.get_lessons()
+    lessons = await education.get_lessons(user.language or 'ru')
     return {'lessons': lessons}
 
 
 @app.get('/api/education/glossary')
 async def education_glossary(user: AuthUser = Depends(telegram_auth)) -> dict:
-    items = await education.get_glossary()
+    items = await education.get_glossary(user.language or 'ru')
     return {'glossary': items}
 
 
